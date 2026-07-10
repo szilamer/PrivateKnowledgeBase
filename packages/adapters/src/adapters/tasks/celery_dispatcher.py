@@ -1,0 +1,15 @@
+from uuid import UUID
+
+from celery import Celery
+
+
+class CeleryTaskDispatcher:
+    def __init__(self, broker_url: str) -> None:
+        self._client = Celery(broker=broker_url)
+
+    async def enqueue_sync_run(self, sync_run_id: UUID) -> None:
+        self._client.send_task(
+            "worker.tasks.ingestion.run_sync",
+            args=[str(sync_run_id)],
+            queue="ingestion",
+        )

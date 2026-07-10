@@ -34,7 +34,9 @@ export default async function HomePage() {
       <section className="panel">
         <h2>Next steps</h2>
         <ul>
-          <li>Phase 1 — Source registry and ingestion</li>
+          <li>
+            <a href="/sources">Sources &amp; synchronization (Phase 1)</a>
+          </li>
           <li>Phase 2 — Parsing and retrieval foundation</li>
           <li>Phase 3 — Knowledge proposals</li>
         </ul>

@@ -23,6 +23,7 @@ pkb-domain = { workspace = true }
 pkb-application = { workspace = true }
 pkb-adapters = { workspace = true }
 pkb-api = { workspace = true }
+pkb-worker = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -44,6 +45,9 @@ src = ["apps", "packages", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"apps/api/**" = ["B008"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -72,3 +76,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "worker.tasks.*"
 disable_error_code = ["untyped-decorator"]
+
+[[tool.mypy.overrides]]
+module = "httpx.*"
+ignore_missing_imports = true

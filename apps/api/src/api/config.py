@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
     database_url: str = "postgresql+asyncpg://pkb:change-me-in-production@localhost:5432/pkb"
     redis_url: str = "redis://localhost:6379/0"
+    celery_broker_url: str = "redis://localhost:6379/0"
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = "change-me-in-production"

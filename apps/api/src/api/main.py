@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from adapters.health import HealthChecker
+from adapters.persistence.session import create_engine, create_session_factory
 from application.health import HealthService
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,8 @@ from starlette.responses import JSONResponse
 
 from api.config import Settings
 from api.routes.health import router as health_router
+from api.routes.sources import router as sources_router
+from api.routes.sync_runs import router as sync_runs_router
 
 settings = Settings()
 configure_logging(settings.log_level)
@@ -21,9 +24,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.settings = settings
     app.state.health_checker = HealthChecker(settings)
     app.state.health_service = HealthService()
+    engine = create_engine(settings.database_url)
+    app.state.session_factory = create_session_factory(engine)
+    app.state.db_engine = engine
     logger.info("api_starting", app_env=settings.app_env)
     yield
     await app.state.health_checker.dispose()
+    await app.state.db_engine.dispose()
     logger.info("api_stopped")
 
 
@@ -59,6 +66,8 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(health_router, prefix="/api/v1")
+    app.include_router(sources_router, prefix="/api/v1")
+    app.include_router(sync_runs_router, prefix="/api/v1")
     return app
 
 

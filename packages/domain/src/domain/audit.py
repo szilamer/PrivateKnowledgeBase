@@ -1,0 +1,23 @@
+from datetime import datetime
+from enum import StrEnum
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+
+class AuditAction(StrEnum):
+    SOURCE_REGISTERED = "source_registered"
+    SYNC_STARTED = "sync_started"
+    SYNC_COMPLETED = "sync_completed"
+    SYNC_FAILED = "sync_failed"
+
+
+class AuditEvent(BaseModel):
+    id: UUID
+    actor_id: UUID
+    action: AuditAction
+    object_type: str
+    object_id: UUID
+    correlation_id: str
+    metadata: dict[str, object] = Field(default_factory=dict)
+    created_at: datetime
