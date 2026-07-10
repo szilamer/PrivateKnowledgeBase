@@ -4,9 +4,9 @@ services:
     volumes:
       - ${HOME}:/host:ro
       - ../../config/host-path-manifest.json:/app/config/host-path-manifest.json:ro
-      - ../../config:/app/config:ro
+      - ../../config:/app/config
   worker:
     volumes:
       - ${HOME}:/host:ro
       - ../../config/host-path-manifest.json:/app/config/host-path-manifest.json:ro
-      - ../../config:/app/config:ro
+      - ../../config:/app/config

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { FolderBrowser } from "@/components/FolderBrowser";
-import { putSourcesConfig, registerLocalSource } from "@/lib/api";
+import { getSyncRun, registerLocalSource, startSync, syncStatusLabel, type SyncRun } from "@/lib/api";
 
 export default function ConnectLocalPage() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function ConnectLocalPage() {
   const [syncNow, setSyncNow] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [syncRun, setSyncRun] = useState<SyncRun | null>(null);
 
   function addPath(path: string) {
     if (!paths.includes(path)) {
@@ -27,51 +28,67 @@ export default function ConnectLocalPage() {
     setPaths((current) => current.filter((item) => item !== path));
   }
 
+  useEffect(() => {
+    if (!syncRun || syncRun.status === "completed" || syncRun.status === "failed" || syncRun.status === "partial") {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void getSyncRun(syncRun.id).then((latest) => {
+        if (latest) setSyncRun(latest);
+      });
+    }, 2000);
+
+    return () => window.clearInterval(interval);
+  }, [syncRun]);
+
   async function handleSubmit() {
     setLoading(true);
     setMessage(null);
+    setSyncRun(null);
+
     const fileExtensions = [
       ...(extensions.md ? [".md"] : []),
       ...(extensions.txt ? [".txt"] : []),
       ...(extensions.pdf ? [".pdf"] : []),
     ];
-    const created = await registerLocalSource({
-      name,
-      paths,
-      file_extensions: fileExtensions,
-    });
-    if (!created) {
-      setMessage("Nem sikerült hozzáadni a forrást. Ellenőrizd, hogy a mappa elérhető és olvasható.");
+
+    try {
+      const created = await registerLocalSource({
+        name,
+        paths,
+        file_extensions: fileExtensions,
+      });
+      if (!created) {
+        setMessage("Nem sikerült hozzáadni a forrást. Ellenőrizd, hogy a mappa elérhető és olvasható.");
+        return;
+      }
+
+      if (syncNow) {
+        const run = await startSync(created.id);
+        if (!run) {
+          setMessage("A forrás létrejött, de a szinkronizálást nem sikerült elindítani. A források oldalon újra próbálhatod.");
+          setStep(5);
+          return;
+        }
+        setSyncRun(run);
+      }
+
+      setStep(5);
+    } catch {
+      setMessage("Váratlan hiba történt. Ellenőrizd, hogy az API fut-e (http://localhost:8000).");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const configId = `local-${Date.now()}`;
-    await putSourcesConfig({
-      version: "1",
-      sync: { on_startup: syncNow, interval_minutes: 60 },
-      sources: [
-        {
-          id: configId,
-          type: "local_folder",
-          name,
-          enabled: true,
-          paths,
-          include_extensions: fileExtensions,
-          exclude_globs: ["**/node_modules/**", "**/.git/**"],
-        },
-      ],
-    });
-
-    setMessage("Forrás hozzáadva.");
-    setLoading(false);
-    router.push("/sources");
   }
+
+  const syncInProgress =
+    syncRun !== null && (syncRun.status === "pending" || syncRun.status === "running");
 
   return (
     <main className="page">
       <section className="hero">
-        <p className="eyebrow">Helyi mappa — {step}. lépés / 4</p>
+        <p className="eyebrow">Helyi mappa — {step === 5 ? "kész" : `${step}. lépés / 4`}</p>
         <h1>Helyi mappa csatlakoztatása</h1>
       </section>
 
@@ -168,12 +185,50 @@ export default function ConnectLocalPage() {
               <input type="checkbox" checked={syncNow} onChange={(e) => setSyncNow(e.target.checked)} />
               Szinkronizálás azonnal
             </label>
+            <p className="muted">
+              A szinkronizálás a háttérben fut. Nagy mappáknál ez több percig is eltarthat — nem kell várni, a
+              források oldalon követheted az állapotot.
+            </p>
             <div className="wizard-nav">
-              <button type="button" onClick={() => setStep(3)}>
+              <button type="button" onClick={() => setStep(3)} disabled={loading}>
                 Vissza
               </button>
               <button type="button" className="button primary" onClick={() => void handleSubmit()} disabled={loading}>
-                {loading ? "Mentés…" : "Forrás hozzáadása"}
+                {loading ? "Forrás hozzáadása…" : "Forrás hozzáadása"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 5 && (
+          <>
+            <h2>Forrás hozzáadva</h2>
+            <p className="muted">
+              <strong>{name}</strong> sikeresen csatlakoztatva ({paths.join(", ")}).
+            </p>
+            {syncRun ? (
+              <div className="sync-status-panel">
+                <p className="run">
+                  {syncStatusLabel(syncRun.status)} — {syncRun.objects_processed} feldolgozva
+                  {syncRun.objects_discovered > 0 ? ` / ${syncRun.objects_discovered} fájl` : ""}
+                  {syncRun.objects_failed > 0 ? `, ${syncRun.objects_failed} hiba` : ""}
+                </p>
+                {syncInProgress && (
+                  <p className="muted">
+                    A szinkronizálás fut a háttérben. Nagy mappáknál ez több percig is eltarthat — nyugodtan menj
+                    tovább, az állapot a források oldalon is frissül.
+                  </p>
+                )}
+                {syncRun.status === "failed" && syncRun.error_summary && (
+                  <p className="message">{syncRun.error_summary}</p>
+                )}
+              </div>
+            ) : (
+              <p className="muted">A szinkronizálást később indíthatod a források oldalról.</p>
+            )}
+            <div className="wizard-nav">
+              <button type="button" className="button primary" onClick={() => router.push("/sources")}>
+                Tovább a forrásokhoz
               </button>
             </div>
           </>

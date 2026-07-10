@@ -17,11 +17,16 @@ import {
   type SyncRun,
 } from "@/lib/api";
 
+function isActiveSync(run: SyncRun | undefined): boolean {
+  return run?.status === "pending" || run?.status === "running";
+}
+
 export default function SourcesPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [syncRuns, setSyncRuns] = useState<Record<string, SyncRun[]>>({});
   const [message, setMessage] = useState<string | null>(null);
+  const [syncingSourceId, setSyncingSourceId] = useState<string | null>(null);
 
   async function refresh() {
     const [items, googleAccounts] = await Promise.all([listSources(), listGoogleAccounts()]);
@@ -38,14 +43,33 @@ export default function SourcesPage() {
     void refresh();
   }, []);
 
+  useEffect(() => {
+    const hasActive = Object.values(syncRuns)
+      .flat()
+      .some((run) => isActiveSync(run));
+    if (!hasActive) return;
+
+    const interval = window.setInterval(() => {
+      void refresh();
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [syncRuns]);
+
   async function handleSync(sourceId: string) {
-    const run = await startSync(sourceId);
-    if (!run) {
-      setMessage("Nem sikerült elindítani a szinkronizálást.");
-      return;
+    setSyncingSourceId(sourceId);
+    setMessage(null);
+    try {
+      const run = await startSync(sourceId);
+      if (!run) {
+        setMessage("Nem sikerült elindítani a szinkronizálást.");
+        return;
+      }
+      setMessage("Szinkronizálás elindítva — a háttérben fut, nagy mappáknál ez több percig is eltarthat.");
+      await refresh();
+    } finally {
+      setSyncingSourceId(null);
     }
-    setMessage("Szinkronizálás elindítva.");
-    await refresh();
   }
 
   async function handleRevoke(alias: string) {
@@ -110,6 +134,8 @@ export default function SourcesPage() {
           <div className="source-grid">
             {sources.map((source) => {
               const latest = (syncRuns[source.id] ?? [])[0];
+              const active = isActiveSync(latest);
+              const busy = syncingSourceId === source.id || active;
               return (
                 <article key={source.id} className="source-card">
                   <div className="source-card-head">
@@ -121,15 +147,23 @@ export default function SourcesPage() {
                       {source.enabled ? "Aktív" : "Szüneteltetve"}
                     </span>
                   </div>
-                  {latest && (
-                    <p className="run">
+                  {latest ? (
+                    <p className={`run ${active ? "run-active" : ""}`}>
                       {syncStatusLabel(latest.status)} — {latest.objects_processed} feldolgozva
+                      {latest.objects_discovered > 0 ? ` / ${latest.objects_discovered} fájl` : ""}
                       {latest.objects_failed > 0 ? `, ${latest.objects_failed} hiba` : ""}
+                    </p>
+                  ) : (
+                    <p className="run muted">Még nem volt szinkronizálás.</p>
+                  )}
+                  {active && (
+                    <p className="muted sync-hint">
+                      Szinkronizálás folyamatban — nagy mappáknál ez több percig is eltarthat.
                     </p>
                   )}
                   <div className="source-card-actions">
-                    <button type="button" onClick={() => void handleSync(source.id)}>
-                      Szinkronizálás most
+                    <button type="button" onClick={() => void handleSync(source.id)} disabled={busy}>
+                      {busy ? "Szinkronizálás…" : "Szinkronizálás most"}
                     </button>
                   </div>
                 </article>

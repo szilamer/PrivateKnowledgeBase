@@ -29,7 +29,12 @@ class SourceConfigService:
             config = SourcesFileConfig.model_validate(payload)
         except ValueError as exc:
             raise DomainError(f"Invalid sources configuration: {exc}") from exc
-        save_sources_config(self._config_path, config)
+        try:
+            save_sources_config(self._config_path, config)
+        except OSError as exc:
+            raise DomainError(
+                f"Cannot write sources configuration to {self._config_path}: {exc}"
+            ) from exc
         return config
 
     @property

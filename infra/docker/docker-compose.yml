@@ -61,7 +61,7 @@ services:
       - "8000:8000"
     volumes:
       - ../../tests/e2e/fixtures:/fixtures:ro
-      - ../../config:/app/config:ro
+      - ../../config:/app/config
       - ${HOME}:/host:ro
     depends_on:
       postgres:
@@ -92,7 +92,7 @@ services:
       PKB_HOST_ROOT: /host
     volumes:
       - ../../tests/e2e/fixtures:/fixtures:ro
-      - ../../config:/app/config:ro
+      - ../../config:/app/config
       - ${HOME}:/host:ro
     depends_on:
       postgres:

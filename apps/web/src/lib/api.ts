@@ -106,6 +106,14 @@ export async function getSourcesHealth(): Promise<SourcesHealth | null> {
   return response.json();
 }
 
+export async function getSyncRun(syncRunId: string): Promise<SyncRun | null> {
+  const response = await fetch(`${API_URL}/api/v1/sync-runs/${syncRunId}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
 export async function startSync(sourceId: string, mode: "full" | "incremental" = "incremental") {
   const response = await fetch(`${API_URL}/api/v1/sync-runs`, {
     method: "POST",

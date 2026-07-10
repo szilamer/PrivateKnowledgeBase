@@ -80,9 +80,11 @@ for index, host_path in enumerate(paths):
 
 manifest_path.write_text(json.dumps({"mappings": mappings}, indent=2) + "\n", encoding="utf-8")
 
-volume_lines = "\n".join(services) if services else "      - ../../config/host-path-manifest.json:/app/config/host-path-manifest.json:ro"
-if not services:
-    volume_lines += "\n      - ../../config:/app/config:ro"
+base_volumes = [
+    "      - ../../config/host-path-manifest.json:/app/config/host-path-manifest.json:ro",
+    "      - ../../config:/app/config",
+]
+volume_lines = "\n".join([*base_volumes, *services]) if services else "\n".join(base_volumes)
 
 host_mount = "      - ${HOME}:/host:ro"
 volume_lines = f"{host_mount}\n{volume_lines}"
