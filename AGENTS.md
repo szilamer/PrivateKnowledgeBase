@@ -6,9 +6,9 @@ Cursor-specific configuration lives in `.cursor/rules/`, `.cursor/skills/`, and 
 
 ## Current phase
 
-**Phase 4 — Canonical knowledge and graph** (Phase 1–3 complete)
+**Phase 5 — Question answering and project overview** (Phase 1–4 complete)
 
-Phase 3 (extraction, proposals, approval queue) is implemented. Current work: canonical entities/claims, outbox projector, Neo4j graph, graph browser.
+Hybrid retrieval planner, source-backed Q&A, project dashboard, and status reports.
 
 ## Document precedence
 
@@ -121,8 +121,8 @@ Every significant change should include:
 | Phase 1 — Source registry and ingestion | Done |
 | Phase 2 — Parsing and retrieval | Done |
 | Phase 3 — Knowledge proposals | Done |
-| Phase 4 — Canonical knowledge and graph | **Current** |
-| Phase 5 — Q&A and project overview | Not started |
+| Phase 4 — Canonical knowledge and graph | Done |
+| Phase 5 — Q&A and project overview | **Current** |
 | Phase 6 — Hardening | Not started |
 
 See `docs/11-implementation-plan-and-backlog.md` for full backlog.

@@ -375,6 +375,117 @@ class PostgresCanonicalRepository:
             {"id": entity_index_id, "canonical_entity_id": canonical_entity_id},
         )
 
+    async def search_entities_by_query(
+        self, owner_id: UUID, query: str, *, limit: int
+    ) -> list[CanonicalEntity]:
+        pattern = f"%{query[:80]}%"
+        result = await self._session.execute(
+            text(
+                """
+                SELECT * FROM canonical_entities
+                WHERE owner_id = :owner_id
+                  AND (
+                    canonical_name ILIKE :pattern
+                    OR aliases::text ILIKE :pattern
+                  )
+                ORDER BY canonical_name
+                LIMIT :limit
+                """
+            ),
+            {"owner_id": owner_id, "pattern": pattern, "limit": limit},
+        )
+        return [_parse_entity(row) for row in result.fetchall()]
+
+    async def search_claims_by_query(
+        self, owner_id: UUID, query: str, *, limit: int
+    ) -> list[CanonicalClaim]:
+        pattern = f"%{query[:80]}%"
+        result = await self._session.execute(
+            text(
+                """
+                SELECT * FROM canonical_claims
+                WHERE owner_id = :owner_id
+                  AND status = 'active'
+                  AND (predicate ILIKE :pattern OR object_value ILIKE :pattern)
+                ORDER BY confidence DESC
+                LIMIT :limit
+                """
+            ),
+            {"owner_id": owner_id, "pattern": pattern, "limit": limit},
+        )
+        claims: list[CanonicalClaim] = []
+        for row in result.fetchall():
+            claim_id = dict(row._mapping)["id"]
+            provenance = await self._load_provenance(claim_id)
+            claims.append(_parse_claim(row, provenance))
+        return claims
+
+    async def list_entities_by_type(
+        self, owner_id: UUID, entity_type: str, *, limit: int
+    ) -> list[CanonicalEntity]:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT * FROM canonical_entities
+                WHERE owner_id = :owner_id AND entity_type = :entity_type
+                ORDER BY canonical_name
+                LIMIT :limit
+                """
+            ),
+            {"owner_id": owner_id, "entity_type": entity_type, "limit": limit},
+        )
+        return [_parse_entity(row) for row in result.fetchall()]
+
+    async def list_claims_by_predicate(
+        self,
+        owner_id: UUID,
+        predicate: str,
+        *,
+        limit: int,
+        since: object | None = None,
+        until: object | None = None,
+    ) -> list[CanonicalClaim]:
+        query = """
+            SELECT * FROM canonical_claims
+            WHERE owner_id = :owner_id
+              AND predicate = :predicate
+              AND status = 'active'
+        """
+        params: dict[str, object] = {
+            "owner_id": owner_id,
+            "predicate": predicate,
+            "limit": limit,
+        }
+        if since is not None:
+            query += " AND created_at >= :since"
+            params["since"] = since
+        if until is not None:
+            query += " AND created_at <= :until"
+            params["until"] = until
+        query += " ORDER BY created_at DESC LIMIT :limit"
+        result = await self._session.execute(text(query), params)
+        claims: list[CanonicalClaim] = []
+        for row in result.fetchall():
+            claim_id = dict(row._mapping)["id"]
+            provenance = await self._load_provenance(claim_id)
+            claims.append(_parse_claim(row, provenance))
+        return claims
+
+    async def count_open_contradictions(self, owner_id: UUID) -> int:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT COUNT(*) AS count FROM contradiction_findings
+                WHERE owner_id = :owner_id AND status = 'open'
+                """
+            ),
+            {"owner_id": owner_id},
+        )
+        row = result.first()
+        if row is None:
+            return 0
+        return int(dict(row._mapping)["count"])
+
     async def _load_provenance(self, claim_id: UUID) -> list[ClaimProvenance]:
         result = await self._session.execute(
             text("SELECT * FROM claim_provenance WHERE claim_id = :claim_id"),

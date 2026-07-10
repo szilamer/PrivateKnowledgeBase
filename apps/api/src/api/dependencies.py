@@ -5,6 +5,10 @@ from uuid import uuid4
 from adapters.content.loader import LocalAndGitHubContentLoader
 from adapters.embeddings.openai_compatible import OpenAICompatibleEmbeddingProvider
 from adapters.graph.neo4j_repository import Neo4jGraphRepository
+from adapters.llm.answer_synthesis import (
+    HeuristicAnswerSynthesizer,
+    OpenAICompatibleAnswerSynthesizer,
+)
 from adapters.parsers.factory import ParserFactory
 from adapters.persistence.canonical_repository import (
     PostgresCanonicalRepository,
@@ -32,6 +36,9 @@ from application.content.preview import PreviewService
 from application.content.search import SearchService
 from application.knowledge.proposal_service import ProposalService
 from application.policy import LocalPolicyService
+from application.projects.dashboard_service import ProjectDashboardService
+from application.projects.report_service import StatusReportService
+from application.qa.answer_service import HybridRetrievalPlanner, QuestionAnsweringService
 from application.sources.service import SourceRegistryService, SyncService
 from domain.errors import DomainError
 from domain.identity import OwnerContext
@@ -48,6 +55,9 @@ class RequestServices:
     proposals: ProposalService
     canonical: CanonicalQueryService
     graph: GraphQueryService
+    qa: QuestionAnsweringService
+    dashboard: ProjectDashboardService
+    reports: StatusReportService
     owner: OwnerContext
     correlation_id: str
 
@@ -82,11 +92,16 @@ def build_services(
     outbox_repo = PostgresOutboxRepository(session)
     materializer = CanonicalMaterializationService(canonical_repo, outbox_repo, entity_repo)
     graph_repo = Neo4jGraphRepository(settings)  # type: ignore[arg-type]
+    search_service = SearchService(chunk_repo, embeddings, policy)
+    graph_query = GraphQueryService(graph_repo, policy)
+    heuristic = HeuristicAnswerSynthesizer()
+    synthesizer = OpenAICompatibleAnswerSynthesizer(settings, heuristic)  # type: ignore[arg-type]
+    planner = HybridRetrievalPlanner(search_service, canonical_repo, graph_repo, policy)
 
     return RequestServices(
         sources=SourceRegistryService(sources_repo, audit_repo, policy),
         sync=SyncService(sources_repo, sync_repo, audit_repo, policy, tasks),
-        search=SearchService(chunk_repo, embeddings, policy),
+        search=search_service,
         preview=PreviewService(version_repo, chunk_repo, parser, loader, policy),
         proposals=ProposalService(
             proposal_repo,
@@ -97,7 +112,10 @@ def build_services(
             on_materialized=tasks,
         ),
         canonical=CanonicalQueryService(canonical_repo, policy),
-        graph=GraphQueryService(graph_repo, policy),
+        graph=graph_query,
+        qa=QuestionAnsweringService(planner, synthesizer, policy),
+        dashboard=ProjectDashboardService(canonical_repo, sources_repo, outbox_repo, policy),
+        reports=StatusReportService(canonical_repo, policy),
         owner=OwnerContext(),
         correlation_id=correlation_id,
     )

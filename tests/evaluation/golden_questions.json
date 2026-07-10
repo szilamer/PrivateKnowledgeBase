@@ -1,0 +1,20 @@
+[
+  {
+    "id": "gq-001",
+    "question": "What technologies does the project use?",
+    "expected_signals": ["technology", "postgresql", "fastapi"],
+    "min_citations": 1
+  },
+  {
+    "id": "gq-002",
+    "question": "What open tasks are documented?",
+    "expected_signals": ["task", "todo"],
+    "min_citations": 0
+  },
+  {
+    "id": "gq-003",
+    "question": "What decisions have been made recently?",
+    "expected_signals": ["decision", "decided"],
+    "min_citations": 0
+  }
+]

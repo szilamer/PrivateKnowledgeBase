@@ -55,6 +55,30 @@ class CanonicalRepository(Protocol):
 
     async def link_entity_index(self, entity_index_id: UUID, canonical_entity_id: UUID) -> None: ...
 
+    async def search_entities_by_query(
+        self, owner_id: UUID, query: str, *, limit: int
+    ) -> list[CanonicalEntity]: ...
+
+    async def search_claims_by_query(
+        self, owner_id: UUID, query: str, *, limit: int
+    ) -> list[CanonicalClaim]: ...
+
+    async def list_entities_by_type(
+        self, owner_id: UUID, entity_type: str, *, limit: int
+    ) -> list[CanonicalEntity]: ...
+
+    async def list_claims_by_predicate(
+        self,
+        owner_id: UUID,
+        predicate: str,
+        *,
+        limit: int,
+        since: object | None = None,
+        until: object | None = None,
+    ) -> list[CanonicalClaim]: ...
+
+    async def count_open_contradictions(self, owner_id: UUID) -> int: ...
+
 
 class OutboxRepository(Protocol):
     async def append(self, event: OutboxEvent) -> None: ...
@@ -64,6 +88,8 @@ class OutboxRepository(Protocol):
     async def mark_processed(self, event_id: UUID) -> None: ...
 
     async def mark_failed(self, event_id: UUID, *, error: str) -> None: ...
+
+    async def pending_count(self) -> int: ...
 
 
 class ProjectionDispatcher(Protocol):
