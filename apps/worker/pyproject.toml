@@ -1,0 +1,24 @@
+[project]
+name = "pkb-worker"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pkb-domain",
+    "pkb-adapters",
+    "pkb-observability",
+    "celery>=5.4",
+    "redis>=5.2",
+    "pydantic-settings>=2.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/worker"]
+
+[tool.uv.sources]
+pkb-domain = { workspace = true }
+pkb-adapters = { workspace = true }
+pkb-observability = { workspace = true }

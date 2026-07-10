@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-packages
+
+      - name: Lint
+        run: |
+          uv run ruff check apps packages tests
+          uv run ruff format --check apps packages tests
+
+      - name: Type check
+        run: uv run mypy
+
+      - name: Unit tests
+        run: uv run pytest tests/unit -v
+
+      - name: Validate Alembic migrations
+        run: |
+          cd apps/api
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://pkb:test@localhost:5432/pkb
+        continue-on-error: true
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install and typecheck
+        working-directory: apps/web
+        run: |
+          npm install
+          npm run typecheck

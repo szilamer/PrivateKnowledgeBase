@@ -1,0 +1,14 @@
+version: "0.1.0"
+name: core
+description: MVP core ontology placeholder
+
+entity_types:
+  - id: entity
+    label: Entity
+    description: A canonical knowledge object
+
+relationship_types:
+  - id: relates_to
+    label: Relates To
+    source_types: [entity]
+    target_types: [entity]
