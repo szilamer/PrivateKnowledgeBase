@@ -39,6 +39,7 @@ class SourceRegistryService:
         command: RegisterLocalSourceCommand,
         *,
         correlation_id: str,
+        host_paths: list[str] | None = None,
     ) -> Source:
         self._policy.authorize_owner(ctx, DEFAULT_OWNER_ID)
         paths = list(command.paths)
@@ -47,6 +48,7 @@ class SourceRegistryService:
         if not paths:
             raise DomainError("At least one local folder path is required")
 
+        display_paths = list(host_paths) if host_paths else paths
         source = Source(
             id=uuid4(),
             type=SourceType.LOCAL_FOLDER,
@@ -54,7 +56,7 @@ class SourceRegistryService:
             owner_id=DEFAULT_OWNER_ID,
             configuration={
                 "paths": paths,
-                "host_paths": paths,
+                "host_paths": display_paths,
                 "file_extensions": command.file_extensions,
                 "exclude_globs": command.exclude_globs,
             },

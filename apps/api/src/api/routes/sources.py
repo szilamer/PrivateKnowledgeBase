@@ -110,10 +110,18 @@ async def register_local_source(
             candidate_paths.append(body.path.strip())
         for folder_path in candidate_paths:
             browse.validate_selectable(folder_path)
+        host_paths = list(body.paths)
+        if body.path.strip():
+            host_paths.append(body.path.strip())
+        bridge = request.app.state.path_bridge
+        container_paths = bridge.resolve_many(host_paths)
+        command = RegisterLocalSourceCommand(**body.model_dump())
+        command.paths = container_paths
         source = await services.sources.register_local(
             services.owner,
-            RegisterLocalSourceCommand(**body.model_dump()),
+            command,
             correlation_id=services.correlation_id,
+            host_paths=host_paths,
         )
         return _to_response(source)
     except DomainError as exc:

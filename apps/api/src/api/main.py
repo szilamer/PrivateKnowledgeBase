@@ -40,7 +40,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     engine = create_engine(settings.database_url)
     app.state.session_factory = create_session_factory(engine)
     app.state.db_engine = engine
-    app.state.path_bridge = HostPathBridge(Path(settings.host_path_manifest_path))
+    app.state.path_bridge = HostPathBridge(
+        Path(settings.host_path_manifest_path),
+        host_root=settings.pkb_host_root,
+    )
     app.state.resolved_llm_settings = AppSettingsService(
         Path(settings.settings_config_path), settings
     ).get_resolved()
