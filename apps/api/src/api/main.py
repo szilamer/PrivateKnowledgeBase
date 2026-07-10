@@ -10,6 +10,7 @@ from observability.logging import configure_logging, get_logger
 from starlette.responses import JSONResponse
 
 from api.config import Settings
+from api.routes.canonical import router as canonical_router
 from api.routes.health import router as health_router
 from api.routes.proposals import router as proposals_router
 from api.routes.search import router as search_router
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(sync_runs_router, prefix="/api/v1")
     app.include_router(search_router, prefix="/api/v1")
     app.include_router(proposals_router, prefix="/api/v1")
+    app.include_router(canonical_router, prefix="/api/v1")
     return app
 
 

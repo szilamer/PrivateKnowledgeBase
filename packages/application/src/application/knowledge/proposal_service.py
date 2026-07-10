@@ -3,7 +3,6 @@ from uuid import UUID, uuid4
 
 from domain.approval import ApprovalAction, ApprovalDecision
 from domain.audit import AuditAction, AuditEvent
-from domain.entities import EntityIndexEntry, EntityType
 from domain.errors import DomainError
 from domain.identity import OwnerContext
 from domain.proposals import (
@@ -15,10 +14,10 @@ from domain.proposals import (
 )
 
 from application.policy import LocalPolicyService
+from application.ports.canonical import CanonicalMaterializer, ProjectionDispatcher
 from application.ports.knowledge import (
     ApprovalRepository,
     AuditWriter,
-    EntityIndexRepository,
     ProposalRepository,
 )
 
@@ -32,15 +31,17 @@ class ProposalService:
         self,
         proposals: ProposalRepository,
         approvals: ApprovalRepository,
-        entities: EntityIndexRepository,
+        materializer: CanonicalMaterializer,
         audit: AuditWriter,
         policy: LocalPolicyService,
+        on_materialized: ProjectionDispatcher | None = None,
     ) -> None:
         self._proposals = proposals
         self._approvals = approvals
-        self._entities = entities
+        self._materializer = materializer
         self._audit = audit
         self._policy = policy
+        self._on_materialized = on_materialized
 
     async def list_proposals(
         self, owner: OwnerContext, filters: ProposalFilter
@@ -190,20 +191,9 @@ class ProposalService:
         return updated
 
     async def _on_approved(self, owner: OwnerContext, proposal: KnowledgeProposal) -> None:
-        if proposal.proposal_type in {ProposalType.ENTITY, ProposalType.ENTITY_RESOLUTION}:
-            name = str(proposal.payload.get("name", proposal.title))
-            entity_type = str(proposal.payload.get("entity_type", "concept"))
-            aliases = proposal.payload.get("aliases", [])
-            entry = EntityIndexEntry(
-                id=uuid4(),
-                owner_id=owner.owner_id,
-                entity_type=EntityType(entity_type),
-                canonical_name=name,
-                aliases=[str(alias) for alias in aliases] if isinstance(aliases, list) else [],
-                status="approved",
-                source_proposal_id=proposal.id,
-            )
-            await self._entities.upsert_from_proposal(entry, source_proposal_id=proposal.id)
+        await self._materializer.materialize_approved_proposal(owner.owner_id, proposal)
+        if self._on_materialized is not None:
+            await self._on_materialized.enqueue_projection()
 
     async def _record_decision(
         self,

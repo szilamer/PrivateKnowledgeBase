@@ -13,3 +13,9 @@ class CeleryTaskDispatcher:
             args=[str(sync_run_id)],
             queue="ingestion",
         )
+
+    async def enqueue_projection(self) -> None:
+        self._client.send_task(
+            "worker.tasks.graph_projection.process_pending",
+            queue="graph_projection",
+        )

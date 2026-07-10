@@ -4,7 +4,12 @@ from uuid import uuid4
 
 from adapters.content.loader import LocalAndGitHubContentLoader
 from adapters.embeddings.openai_compatible import OpenAICompatibleEmbeddingProvider
+from adapters.graph.neo4j_repository import Neo4jGraphRepository
 from adapters.parsers.factory import ParserFactory
+from adapters.persistence.canonical_repository import (
+    PostgresCanonicalRepository,
+    PostgresOutboxRepository,
+)
 from adapters.persistence.chunk_repository import (
     PostgresChunkRepository,
     PostgresVersionContentRepository,
@@ -21,6 +26,8 @@ from adapters.persistence.repositories import (
 )
 from adapters.persistence.session import session_scope
 from adapters.tasks.celery_dispatcher import CeleryTaskDispatcher
+from application.canonical.materialization_service import CanonicalMaterializationService
+from application.canonical.query_service import CanonicalQueryService, GraphQueryService
 from application.content.preview import PreviewService
 from application.content.search import SearchService
 from application.knowledge.proposal_service import ProposalService
@@ -39,6 +46,8 @@ class RequestServices:
     search: SearchService
     preview: PreviewService
     proposals: ProposalService
+    canonical: CanonicalQueryService
+    graph: GraphQueryService
     owner: OwnerContext
     correlation_id: str
 
@@ -69,13 +78,26 @@ def build_services(
     proposal_repo = PostgresProposalRepository(session)
     approval_repo = PostgresApprovalRepository(session)
     entity_repo = PostgresEntityIndexRepository(session)
+    canonical_repo = PostgresCanonicalRepository(session)
+    outbox_repo = PostgresOutboxRepository(session)
+    materializer = CanonicalMaterializationService(canonical_repo, outbox_repo, entity_repo)
+    graph_repo = Neo4jGraphRepository(settings)  # type: ignore[arg-type]
 
     return RequestServices(
         sources=SourceRegistryService(sources_repo, audit_repo, policy),
         sync=SyncService(sources_repo, sync_repo, audit_repo, policy, tasks),
         search=SearchService(chunk_repo, embeddings, policy),
         preview=PreviewService(version_repo, chunk_repo, parser, loader, policy),
-        proposals=ProposalService(proposal_repo, approval_repo, entity_repo, audit_repo, policy),
+        proposals=ProposalService(
+            proposal_repo,
+            approval_repo,
+            materializer,
+            audit_repo,
+            policy,
+            on_materialized=tasks,
+        ),
+        canonical=CanonicalQueryService(canonical_repo, policy),
+        graph=GraphQueryService(graph_repo, policy),
         owner=OwnerContext(),
         correlation_id=correlation_id,
     )
