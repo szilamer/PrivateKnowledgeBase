@@ -76,6 +76,35 @@ class PostgresSourceRepository:
         )
         return source
 
+    async def upsert(self, source: Source) -> Source:
+        existing = await self.get_by_id(source.id, source.owner_id)
+        if existing is None:
+            return await self.create(source)
+        await self._session.execute(
+            text(
+                """
+                UPDATE sources
+                SET type = :type,
+                    name = :name,
+                    configuration = CAST(:configuration AS jsonb),
+                    enabled = :enabled,
+                    default_project_id = :default_project_id,
+                    updated_at = NOW()
+                WHERE id = :id AND owner_id = :owner_id
+                """
+            ),
+            {
+                "id": source.id,
+                "owner_id": source.owner_id,
+                "type": source.type.value,
+                "name": source.name,
+                "configuration": json.dumps(source.configuration),
+                "enabled": source.enabled,
+                "default_project_id": source.default_project_id,
+            },
+        )
+        return source
+
     async def get_by_id(self, source_id: UUID, owner_id: UUID) -> Source | None:
         result = await self._session.execute(
             text("SELECT * FROM sources WHERE id = :id AND owner_id = :owner_id"),

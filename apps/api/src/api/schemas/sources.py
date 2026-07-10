@@ -8,8 +8,10 @@ from pydantic import BaseModel, Field
 
 class LocalSourceRequest(BaseModel):
     name: str
-    path: str
+    path: str = ""
+    paths: list[str] = Field(default_factory=list)
     file_extensions: list[str] = Field(default_factory=lambda: [".md", ".txt", ".pdf"])
+    exclude_globs: list[str] = Field(default_factory=lambda: ["**/node_modules/**", "**/.git/**"])
     default_project_id: UUID | None = None
     enabled: bool = True
 

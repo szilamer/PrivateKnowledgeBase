@@ -1,0 +1,48 @@
+# Example personal source configuration (Phase 7)
+#
+# Copy to config/sources.yaml and edit paths/account aliases.
+# Secrets (OAuth tokens) are stored separately — never commit tokens here.
+#
+# See: docs/13-personal-source-connectors-supplement.md
+
+version: "1"
+
+sync:
+  on_startup: true
+  interval_minutes: 60
+
+sources:
+  - id: projects-local
+    type: local_folder
+    name: Projektek
+    enabled: true
+    paths:
+      - ~/Projects
+    include_extensions: [".md", ".txt", ".pdf"]
+    exclude_globs:
+      - "**/node_modules/**"
+      - "**/.git/**"
+
+  # Uncomment after Google OAuth setup (Phase 7b+):
+  #
+  # - id: work-drive
+  #   type: google_drive
+  #   name: Munka Google Drive
+  #   enabled: true
+  #   account: google:primary
+  #   folder_ids: []
+  #   include_google_docs: true
+  #
+  # - id: gmail-important
+  #   type: gmail
+  #   name: Fontos emailek
+  #   enabled: true
+  #   account: google:primary
+  #   query: "label:important newer_than:365d"
+  #
+  # - id: calendar-primary
+  #   type: google_calendar
+  #   name: Saját naptár
+  #   enabled: true
+  #   account: google:primary
+  #   calendar_ids: [primary]

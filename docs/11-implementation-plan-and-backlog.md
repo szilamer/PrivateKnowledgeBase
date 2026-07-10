@@ -64,7 +64,25 @@ Implementation proceeds in vertical slices. Each slice must produce observable u
 - documentation review;
 - release checklist and operator guide.
 
-## 9. Initial epics
+## 9. Phase 7 — Personal sources and connection UI
+
+Specification supplements:
+
+- `docs/13-personal-source-connectors-supplement.md`
+- `docs/14-source-connection-ui-supplement.md`
+- `docs/adr/ADR-013-google-workspace-connectors.md` (proposed)
+
+Delivery slices:
+
+- **7a** — declarative `config/sources.yaml`, host path bridge, bootstrap sync (no manual Docker mounts)
+- **7b** — Google OAuth foundation and credential storage
+- **7c** — Google Drive folder connector
+- **7d** — Gmail connector
+- **7e** — Google Calendar connector
+- **7f** — Source Connection UI (`/sources`, `/sources/connect/*` wizards, Hungarian copy)
+- **7g** — acceptance tests AT-SRC-01 … AT-SRC-05 and UX criteria from doc 14
+
+## 10. Initial epics
 
 - EPIC-01 Platform foundation
 - EPIC-02 Source connectors
@@ -76,7 +94,9 @@ Implementation proceeds in vertical slices. Each slice must produce observable u
 - EPIC-08 Question answering
 - EPIC-09 Project intelligence
 - EPIC-10 Security and operations
+- EPIC-11 Personal source connectors (Phase 7)
+- EPIC-12 Source connection UI (Phase 7)
 
-## 10. MVP exit criteria
+## 11. MVP exit criteria
 
 All MVP requirements have passing acceptance tests, critical security findings are closed, recovery procedures are verified, the evaluation targets are met, and the technical documents reflect the implemented system.

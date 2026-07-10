@@ -30,6 +30,10 @@ out/
 secrets/
 *.pem
 
+# User source configuration (Phase 7 — copy from config/sources.example.yaml)
+config/sources.yaml
+config/settings.yaml
+
 # IDE
 .idea/
 .vscode/

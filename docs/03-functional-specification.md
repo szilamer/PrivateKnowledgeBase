@@ -26,6 +26,14 @@ The UI displays last synchronization, current state, processed-object count, war
 ### FR-SRC-004 Remove source
 Removing a source stops future ingestion. Canonical knowledge is not silently deleted; the user receives an impact preview and may archive or explicitly remove derived records.
 
+### FR-SRC-010 … FR-SRC-017 Personal source connectors
+
+See `docs/13-personal-source-connectors-supplement.md` for declarative configuration, local host paths, Google Drive, Gmail, and Google Calendar requirements.
+
+### FR-UI-SRC-001 … FR-UI-SRC-007 Source connection UI
+
+See `docs/14-source-connection-ui-supplement.md` for the intuitive wizard-based source management interface.
+
 ## 3. Ingestion and processing
 
 ### FR-ING-001 Full synchronization

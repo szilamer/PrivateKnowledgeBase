@@ -51,6 +51,10 @@ class ParserFactory:
 
     def parse(self, content: bytes, mime_type: str | None, external_id: str) -> ParsedDocument:
         lower = external_id.lower()
+        if mime_type in {"message/rfc822", "text/email"} or lower.startswith("email:"):
+            return self._text.parse(content, mime_type, external_id)
+        if mime_type == "text/calendar" or "calendar_event" in lower:
+            return self._text.parse(content, mime_type, external_id)
         if lower.endswith(".pdf") or mime_type == "application/pdf":
             return self._pdf.parse(content, mime_type, external_id)
         if lower.endswith(".md") or lower.endswith(".markdown"):

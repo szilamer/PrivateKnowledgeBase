@@ -172,3 +172,169 @@ a {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+.sources-page .page,
+.page.sources-page {
+  max-width: 960px;
+}
+
+.hero-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.button.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.source-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.source-card {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.source-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.source-card h3 {
+  margin: 0;
+}
+
+.source-card-actions {
+  margin-top: 0.75rem;
+}
+
+.pill {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.pill-ok {
+  color: #7dcea0;
+  border-color: #7dcea0;
+}
+
+.pill-muted {
+  color: var(--muted);
+}
+
+.empty-state {
+  display: grid;
+  gap: 1rem;
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.tile {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+}
+
+.tile:hover {
+  border-color: var(--accent);
+}
+
+.tile-icon {
+  font-size: 1.5rem;
+}
+
+.wizard {
+  display: grid;
+  gap: 1rem;
+}
+
+.wizard-nav {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.chip-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.chip button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.account-strip .account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-link {
+  margin-top: 1.5rem;
+}

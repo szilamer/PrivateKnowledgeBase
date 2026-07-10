@@ -39,8 +39,14 @@ This document is the authoritative index of technology and architecture decision
 - [ADR-010 Document Processing](adr/ADR-010-document-processing.md)
 - [ADR-011 Ontology Storage](adr/ADR-011-ontology-storage.md)
 - [ADR-012 Observability and Audit](adr/ADR-012-observability-and-audit.md)
+- [ADR-013 Google Workspace Connectors](adr/ADR-013-google-workspace-connectors.md) — **Proposed**
 
-## 4. Precedence
+## 4. Specification supplements (post-MVP)
+
+- [13 — Personal Source Connectors](13-personal-source-connectors-supplement.md)
+- [14 — Source Connection UI](14-source-connection-ui-supplement.md)
+
+## 5. Precedence
 
 1. Accepted ADRs
 2. Technical specification
@@ -49,7 +55,8 @@ This document is the authoritative index of technology and architecture decision
 5. Functional specification
 6. MVP scope and product requirements
 7. Project vision and concept
+8. Approved specification supplements (`docs/13-*`, `docs/14-*`)
 
-## 5. Change process
+## 6. Change process
 
 A technology decision may change only through a new or superseding ADR. The ADR must document context, decision drivers, alternatives, decision, consequences, migration, and rollback considerations.

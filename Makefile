@@ -1,7 +1,8 @@
 .PHONY: help up down build logs migrate test lint typecheck ci dev-setup backup restore rebuild-projection load-smoke
 
 COMPOSE_FILE := infra/docker/docker-compose.yml
-COMPOSE := docker compose -f $(COMPOSE_FILE)
+COMPOSE_OVERRIDE := infra/docker/docker-compose.override.generated.yml
+COMPOSE := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_OVERRIDE)
 
 help:
 	@echo "Private Knowledge Base — development commands"
@@ -26,6 +27,8 @@ dev-setup:
 	cd apps/web && npm install
 
 up:
+	chmod +x infra/scripts/prepare-host-sources.sh
+	./infra/scripts/prepare-host-sources.sh
 	$(COMPOSE) up -d --build
 
 down:

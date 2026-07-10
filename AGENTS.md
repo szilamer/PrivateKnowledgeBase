@@ -8,9 +8,13 @@ Cursor-specific configuration lives in `.cursor/rules/`, `.cursor/skills/`, and 
 
 **Phase 6 — Hardening complete** (Phases 0–5 complete)
 
-Backup/restore scripts, projection rebuild, operations status API, security and load smoke tests, operator guide, and release checklist.
+**Phase 7 — Personal sources and connection UI** is specified in:
 
-See [docs/operator-guide.md](docs/operator-guide.md) and [docs/release-checklist.md](docs/release-checklist.md).
+- `docs/13-personal-source-connectors-supplement.md` — local folders, Google Drive, Gmail, Google Calendar
+- `docs/14-source-connection-ui-supplement.md` — intuitive source connection wizard UI
+- `docs/adr/ADR-013-google-workspace-connectors.md` (proposed)
+
+See [docs/operator-guide.md](docs/operator-guide.md) and [docs/release-checklist.md](docs/release-checklist.md) for Phase 6 operations.
 
 ## Document precedence
 

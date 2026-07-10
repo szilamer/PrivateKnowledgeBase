@@ -9,6 +9,7 @@ from adapters.persistence.chunk_repository import (
     PostgresVersionContentRepository,
 )
 from adapters.persistence.session import create_engine, create_session_factory, session_scope
+from adapters.settings.runtime import load_resolved_llm_settings
 from application.content.processing import DocumentProcessingService
 from application.ports.content import EmbeddingProvider
 from celery import Task
@@ -24,7 +25,7 @@ _session_factory = create_session_factory(_engine)
 
 
 def _embedding_provider() -> EmbeddingProvider:
-    return build_embedding_provider(settings)
+    return build_embedding_provider(load_resolved_llm_settings(settings))
 
 
 async def _process_pending() -> int:

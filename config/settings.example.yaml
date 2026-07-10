@@ -1,0 +1,19 @@
+# Example application settings (Phase 7+)
+#
+# Copy to config/settings.yaml and edit.
+# API keys stay in .env — reference them by env var name only.
+#
+# See: docs/08-ai-development-contract.md §3.2
+
+version: "1"
+
+llm:
+  enabled: true
+  base_url: http://localhost:11434/v1
+  api_key_env: LLM_API_KEY
+  extraction_model: gpt-4o-mini
+  synthesis_model: gpt-4o-mini
+  embedding:
+    provider: auto
+    model: text-embedding-3-small
+    dimension: 1536

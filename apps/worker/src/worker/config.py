@@ -17,3 +17,10 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dimension: int = 1536
     extraction_model: str = "gpt-4o-mini"
+    synthesis_model: str = "gpt-4o-mini"
+    settings_config_path: str = "config/settings.yaml"
+    session_secret: str = "change-me-to-a-random-32-byte-string"
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/api/v1/connectors/google/callback"
+    pkb_google_connectors_enabled: bool = False

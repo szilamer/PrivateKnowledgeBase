@@ -84,6 +84,8 @@ See [Technology Decisions and ADR Index](docs/12-technology-decisions-and-adr-in
 10. [Knowledge Management and Security Policy](docs/10-knowledge-management-and-security-policy.md)
 11. [Implementation Plan and Backlog](docs/11-implementation-plan-and-backlog.md)
 12. [Technology Decisions and ADR Index](docs/12-technology-decisions-and-adr-index.md)
+13. [Personal Source Connectors Supplement](docs/13-personal-source-connectors-supplement.md) (Phase 7 draft)
+14. [Source Connection UI Supplement](docs/14-source-connection-ui-supplement.md) (Phase 7 draft)
 
 ## Implementation status
 

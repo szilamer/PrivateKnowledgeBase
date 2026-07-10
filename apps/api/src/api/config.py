@@ -15,6 +15,15 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "change-me-in-production"
     session_secret: str = "change-me-to-a-random-32-byte-string"
+    sources_config_path: str = "config/sources.yaml"
+    settings_config_path: str = "config/settings.yaml"
+    host_path_manifest_path: str = "config/host-path-manifest.json"
+    pkb_source_dirs: str = ""
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/api/v1/connectors/google/callback"
+    pkb_google_connectors_enabled: bool = False
+    sources_bootstrap_on_startup: bool = True
     llm_base_url: str = "http://localhost:11434/v1"
     llm_api_key: str = ""
     embedding_model: str = "text-embedding-3-small"

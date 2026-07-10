@@ -1,7 +1,7 @@
 import asyncio
 from uuid import UUID
 
-from adapters.connectors.factory import ConnectorFactory
+from adapters.connectors.google.factory import build_connector_factory, build_google_oauth
 from adapters.persistence.repositories import (
     PostgresAuditRepository,
     PostgresSourceObjectRepository,
@@ -20,17 +20,25 @@ logger = get_logger("worker.tasks.ingestion")
 settings = Settings()
 _engine = create_engine(settings.database_url)
 _session_factory = create_session_factory(_engine)
-_connector_factory = ConnectorFactory()
 
 
 async def _execute_sync(sync_run_id: UUID) -> None:
     async with session_scope(_session_factory) as session:
+        oauth = build_google_oauth(
+            session=session,
+            client_id=settings.google_client_id,
+            client_secret=settings.google_client_secret,
+            redirect_uri=settings.google_redirect_uri,
+            session_secret=settings.session_secret,
+            enabled=settings.pkb_google_connectors_enabled,
+        )
+        connector_factory = build_connector_factory(oauth)
         runner = IngestionRunner(
             sources=PostgresSourceRepository(session),
             sync_runs=PostgresSyncRunRepository(session),
             objects=PostgresSourceObjectRepository(session),
             audit=PostgresAuditRepository(session),
-            connector=_connector_factory,
+            connector=connector_factory,
         )
         result = await runner.run(sync_run_id)
         logger.info(

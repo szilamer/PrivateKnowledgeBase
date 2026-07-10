@@ -12,6 +12,7 @@ from adapters.persistence.knowledge_repository import (
 )
 from adapters.persistence.repositories import PostgresAuditRepository
 from adapters.persistence.session import create_engine, create_session_factory, session_scope
+from adapters.settings.runtime import load_resolved_llm_settings
 from application.knowledge.extraction_service import KnowledgeExtractionService
 from celery import Task
 from observability.logging import get_logger
@@ -26,8 +27,10 @@ _session_factory = create_session_factory(_engine)
 
 
 def _llm_provider() -> OpenAICompatibleLLMProvider | None:
-    provider = OpenAICompatibleLLMProvider(settings)
-    return provider
+    resolved = load_resolved_llm_settings(settings)
+    if not resolved.llm_enabled:
+        return None
+    return OpenAICompatibleLLMProvider(resolved)
 
 
 async def _extract_pending() -> int:

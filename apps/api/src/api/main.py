@@ -1,22 +1,29 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from adapters.health import HealthChecker
 from adapters.persistence.session import create_engine, create_session_factory
+from adapters.sources.host_path_bridge import HostPathBridge
 from application.health import HealthService
+from application.settings.service import AppSettingsService
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from observability.logging import configure_logging, get_logger
 from starlette.responses import JSONResponse
 
+from api.bootstrap import bootstrap_sources
 from api.config import Settings
+from api.routes.app_settings import router as app_settings_router
 from api.routes.canonical import router as canonical_router
+from api.routes.google_connectors import router as google_connectors_router
 from api.routes.health import router as health_router
 from api.routes.operations import router as operations_router
 from api.routes.projects import router as projects_router
 from api.routes.proposals import router as proposals_router
 from api.routes.questions import router as questions_router
 from api.routes.search import router as search_router
+from api.routes.source_config import router as source_config_router
 from api.routes.sources import router as sources_router
 from api.routes.sync_runs import router as sync_runs_router
 
@@ -33,7 +40,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     engine = create_engine(settings.database_url)
     app.state.session_factory = create_session_factory(engine)
     app.state.db_engine = engine
+    app.state.path_bridge = HostPathBridge(Path(settings.host_path_manifest_path))
+    app.state.resolved_llm_settings = AppSettingsService(
+        Path(settings.settings_config_path), settings
+    ).get_resolved()
+    oauth_states: set[str] = set()
+    app.state.google_oauth_states = oauth_states
     logger.info("api_starting", app_env=settings.app_env)
+    if settings.sources_bootstrap_on_startup:
+        await bootstrap_sources(app)
     yield
     await app.state.health_checker.dispose()
     await app.state.db_engine.dispose()
@@ -73,6 +88,9 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(sources_router, prefix="/api/v1")
+    app.include_router(source_config_router, prefix="/api/v1")
+    app.include_router(google_connectors_router, prefix="/api/v1")
+    app.include_router(app_settings_router, prefix="/api/v1")
     app.include_router(sync_runs_router, prefix="/api/v1")
     app.include_router(search_router, prefix="/api/v1")
     app.include_router(proposals_router, prefix="/api/v1")

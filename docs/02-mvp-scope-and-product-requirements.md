@@ -27,7 +27,7 @@ A single user can process documents and GitHub data from several projects throug
 
 ## 5. Excluded from the MVP
 
-- Continuous email monitoring.
+- Continuous email monitoring (Phase 7 introduces user-scoped Gmail sync runs — see `docs/13-personal-source-connectors-supplement.md`).
 - Slack or Teams integration.
 - Automatic two-way modification of external systems.
 - Multi-user organizational authorization.
