@@ -122,7 +122,18 @@ class LocalFolderBrowseService:
 
         entries: list[LocalFolderEntry] = []
         try:
-            for child in sorted(fs_path.iterdir(), key=lambda item: item.name.lower()):
+            children = sorted(fs_path.iterdir(), key=lambda item: item.name.lower())
+        except OSError as exc:
+            return LocalBrowseResult(
+                path=target_display,
+                parent_path=parent_display,
+                can_select=True,
+                readable=False,
+                error=f"Nem sikerült beolvasni a mappa tartalmát: {exc}",
+            )
+
+        for child in children:
+            try:
                 if not child.is_dir() or child.is_symlink():
                     continue
                 if child.name in _BLOCKED_SEGMENTS or child.name.startswith("."):
@@ -139,14 +150,8 @@ class LocalFolderBrowseService:
                         has_children=_directory_has_subdirs(child),
                     )
                 )
-        except OSError as exc:
-            return LocalBrowseResult(
-                path=target_display,
-                parent_path=parent_display,
-                can_select=True,
-                readable=False,
-                error=f"Nem sikerült beolvasni a mappa tartalmát: {exc}",
-            )
+            except OSError:
+                continue
 
         return LocalBrowseResult(
             path=target_display,
