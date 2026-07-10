@@ -2,7 +2,7 @@ import asyncio
 from uuid import UUID
 
 from adapters.content.loader import LocalAndGitHubContentLoader
-from adapters.embeddings.openai_compatible import OpenAICompatibleEmbeddingProvider
+from adapters.embeddings.factory import build_embedding_provider
 from adapters.parsers.factory import ParserFactory
 from adapters.persistence.chunk_repository import (
     PostgresChunkRepository,
@@ -10,6 +10,7 @@ from adapters.persistence.chunk_repository import (
 )
 from adapters.persistence.session import create_engine, create_session_factory, session_scope
 from application.content.processing import DocumentProcessingService
+from application.ports.content import EmbeddingProvider
 from celery import Task
 from observability.logging import get_logger
 
@@ -22,8 +23,8 @@ _engine = create_engine(settings.database_url)
 _session_factory = create_session_factory(_engine)
 
 
-def _embedding_provider() -> OpenAICompatibleEmbeddingProvider:
-    return OpenAICompatibleEmbeddingProvider(settings)
+def _embedding_provider() -> EmbeddingProvider:
+    return build_embedding_provider(settings)
 
 
 async def _process_pending() -> int:

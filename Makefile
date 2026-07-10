@@ -67,3 +67,7 @@ rebuild-projection:
 load-smoke:
 	chmod +x infra/scripts/load_smoke.sh
 	./infra/scripts/load_smoke.sh
+
+e2e-smoke:
+	chmod +x infra/scripts/e2e_smoke.sh
+	./infra/scripts/e2e_smoke.sh

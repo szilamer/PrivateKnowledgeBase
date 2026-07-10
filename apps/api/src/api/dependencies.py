@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from adapters.content.loader import LocalAndGitHubContentLoader
-from adapters.embeddings.openai_compatible import OpenAICompatibleEmbeddingProvider
+from adapters.embeddings.factory import build_embedding_provider
 from adapters.graph.neo4j_repository import Neo4jGraphRepository
 from adapters.llm.answer_synthesis import (
     HeuristicAnswerSynthesizer,
@@ -85,7 +85,7 @@ def build_services(
     version_repo = PostgresVersionContentRepository(session)
     policy = LocalPolicyService()
     tasks = CeleryTaskDispatcher(broker_url)
-    embeddings = OpenAICompatibleEmbeddingProvider(settings)  # type: ignore[arg-type]
+    embeddings = build_embedding_provider(settings)  # type: ignore[arg-type]
     parser = ParserFactory()
     loader = LocalAndGitHubContentLoader()
     proposal_repo = PostgresProposalRepository(session)

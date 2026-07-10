@@ -9,7 +9,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY pyproject.toml ./
 COPY packages/ ./packages/
-COPY apps/api/ ./apps/api/
+COPY apps/ ./apps/
 
 WORKDIR /app/apps/api
 

@@ -32,4 +32,11 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
-celery_app.autodiscover_tasks(["worker.tasks"])
+celery_app.autodiscover_tasks(["worker"])
+
+# Ensure task modules are registered (autodiscover alone misses src-layout submodules).
+import worker.tasks.extraction  # noqa: F401, E402
+import worker.tasks.graph_projection  # noqa: F401, E402
+import worker.tasks.ingestion  # noqa: F401, E402
+import worker.tasks.knowledge_extraction  # noqa: F401, E402
+import worker.tasks.maintenance  # noqa: F401, E402

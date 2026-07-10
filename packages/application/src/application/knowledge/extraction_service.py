@@ -168,11 +168,13 @@ class KnowledgeExtractionService:
             proposal_type = (
                 ProposalType.ENTITY_RESOLUTION if action == "ambiguous" else ProposalType.ENTITY
             )
-            payload: dict[str, object] = entity.model_dump()
+            payload: dict[str, object] = entity.model_dump(mode="json")
             if action == "link" and resolution_matches:
                 payload["resolved_entity_id"] = str(resolution_matches[0].entity_id)
             if action == "ambiguous":
-                payload["candidates"] = [match.model_dump() for match in resolution_matches]
+                payload["candidates"] = [
+                    match.model_dump(mode="json") for match in resolution_matches
+                ]
 
             proposal = KnowledgeProposal(
                 id=uuid4(),
@@ -302,7 +304,7 @@ class KnowledgeExtractionService:
             risk_level=RiskLevel(risk),
             confidence=entry.confidence,
             title=title,
-            payload=entry.model_dump(),
+            payload=entry.model_dump(mode="json"),
             project_id=project_id,
             source_id=source_id,
             requires_review=requires_review(risk, proposal_type.value),
