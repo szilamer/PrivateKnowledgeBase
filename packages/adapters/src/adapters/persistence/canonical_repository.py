@@ -56,6 +56,23 @@ def _parse_claim(row: object, provenance: list[ClaimProvenance]) -> CanonicalCla
     )
 
 
+def _parse_relationship(row: object) -> CanonicalRelationship:
+    mapping = dict(row._mapping)  # type: ignore[attr-defined]
+    return CanonicalRelationship(
+        id=mapping["id"],
+        owner_id=mapping["owner_id"],
+        source_entity_id=mapping["source_entity_id"],
+        target_entity_id=mapping["target_entity_id"],
+        relationship_type=mapping["relationship_type"],
+        status=mapping["status"],
+        valid_from=mapping.get("valid_from"),
+        valid_to=mapping.get("valid_to"),
+        source_proposal_id=mapping.get("source_proposal_id"),
+        created_at=mapping["created_at"],
+        updated_at=mapping["updated_at"],
+    )
+
+
 class PostgresCanonicalRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -486,6 +503,75 @@ class PostgresCanonicalRepository:
             return 0
         return int(dict(row._mapping)["count"])
 
+    async def list_all_entities(self, owner_id: UUID, *, limit: int) -> list[CanonicalEntity]:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT * FROM canonical_entities
+                WHERE owner_id = :owner_id
+                ORDER BY id
+                LIMIT :limit
+                """
+            ),
+            {"owner_id": owner_id, "limit": limit},
+        )
+        return [_parse_entity(row) for row in result.fetchall()]
+
+    async def list_all_relationships(
+        self, owner_id: UUID, *, limit: int
+    ) -> list[CanonicalRelationship]:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT * FROM canonical_relationships
+                WHERE owner_id = :owner_id AND status = 'active'
+                ORDER BY id
+                LIMIT :limit
+                """
+            ),
+            {"owner_id": owner_id, "limit": limit},
+        )
+        return [_parse_relationship(row) for row in result.fetchall()]
+
+    async def list_all_claims(self, owner_id: UUID, *, limit: int) -> list[CanonicalClaim]:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT * FROM canonical_claims
+                WHERE owner_id = :owner_id AND status = 'active'
+                ORDER BY id
+                LIMIT :limit
+                """
+            ),
+            {"owner_id": owner_id, "limit": limit},
+        )
+        return [_parse_claim(row, []) for row in result.fetchall()]
+
+    async def count_entities(self, owner_id: UUID) -> int:
+        result = await self._session.execute(
+            text("SELECT COUNT(*) AS count FROM canonical_entities WHERE owner_id = :owner_id"),
+            {"owner_id": owner_id},
+        )
+        row = result.first()
+        if row is None:
+            return 0
+        return int(dict(row._mapping)["count"])
+
+    async def count_claims(self, owner_id: UUID) -> int:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT COUNT(*) AS count FROM canonical_claims
+                WHERE owner_id = :owner_id AND status = 'active'
+                """
+            ),
+            {"owner_id": owner_id},
+        )
+        row = result.first()
+        if row is None:
+            return 0
+        return int(dict(row._mapping)["count"])
+
     async def _load_provenance(self, claim_id: UUID) -> list[ClaimProvenance]:
         result = await self._session.execute(
             text("SELECT * FROM claim_provenance WHERE claim_id = :claim_id"),
@@ -595,6 +681,24 @@ class PostgresOutboxRepository:
     async def pending_count(self) -> int:
         result = await self._session.execute(
             text("SELECT COUNT(*) AS count FROM outbox_events WHERE status = 'pending'")
+        )
+        row = result.first()
+        if row is None:
+            return 0
+        return int(dict(row._mapping)["count"])
+
+    async def failed_count(self) -> int:
+        result = await self._session.execute(
+            text("SELECT COUNT(*) AS count FROM outbox_events WHERE status = 'failed'")
+        )
+        row = result.first()
+        if row is None:
+            return 0
+        return int(dict(row._mapping)["count"])
+
+    async def processed_count(self) -> int:
+        result = await self._session.execute(
+            text("SELECT COUNT(*) AS count FROM outbox_events WHERE status = 'processed'")
         )
         row = result.first()
         if row is None:

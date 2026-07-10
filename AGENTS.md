@@ -6,9 +6,11 @@ Cursor-specific configuration lives in `.cursor/rules/`, `.cursor/skills/`, and 
 
 ## Current phase
 
-**Phase 5 — Question answering and project overview** (Phase 1–4 complete)
+**Phase 6 — Hardening complete** (Phases 0–5 complete)
 
-Hybrid retrieval planner, source-backed Q&A, project dashboard, and status reports.
+Backup/restore scripts, projection rebuild, operations status API, security and load smoke tests, operator guide, and release checklist.
+
+See [docs/operator-guide.md](docs/operator-guide.md) and [docs/release-checklist.md](docs/release-checklist.md).
 
 ## Document precedence
 

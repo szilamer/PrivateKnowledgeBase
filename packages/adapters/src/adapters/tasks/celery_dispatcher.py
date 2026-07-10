@@ -19,3 +19,10 @@ class CeleryTaskDispatcher:
             "worker.tasks.graph_projection.process_pending",
             queue="graph_projection",
         )
+
+    async def enqueue_projection_rebuild(self, owner_id: UUID) -> None:
+        self._client.send_task(
+            "worker.tasks.maintenance.rebuild_projection",
+            args=[str(owner_id)],
+            queue="maintenance",
+        )

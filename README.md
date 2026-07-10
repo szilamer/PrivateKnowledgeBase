@@ -89,10 +89,15 @@ See [Technology Decisions and ADR Index](docs/12-technology-decisions-and-adr-in
 
 | Phase | Status |
 |---|---|
-| Phase 0 — Repository and infrastructure | Scaffolded |
-| Phase 1 — Source registry and ingestion | Not started |
-| Phase 2 — Parsing and retrieval | Not started |
-| Phase 3+ | Not started |
+| Phase 0 — Repository and infrastructure | Complete |
+| Phase 1 — Source registry and ingestion | Complete |
+| Phase 2 — Parsing and retrieval | Complete |
+| Phase 3 — Knowledge proposals | Complete |
+| Phase 4 — Canonical knowledge and graph | Complete |
+| Phase 5 — Question answering and project overview | Complete |
+| Phase 6 — Hardening | Complete |
+
+Operator procedures: [Operator Guide](docs/operator-guide.md). Release gate: [Release Checklist](docs/release-checklist.md).
 
 For AI-assisted development, see [AGENTS.md](AGENTS.md).
 

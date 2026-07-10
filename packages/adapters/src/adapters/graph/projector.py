@@ -1,5 +1,6 @@
 import re
 from typing import Protocol
+from uuid import UUID
 
 from domain.canonical import OutboxEvent
 
@@ -31,6 +32,17 @@ class Neo4jGraphProjector:
             )
             await session.run(
                 "CREATE CONSTRAINT claim_id IF NOT EXISTS FOR (c:Claim) REQUIRE c.id IS UNIQUE"
+            )
+
+    async def clear_owner(self, owner_id: UUID) -> None:
+        async with self._driver.session() as session:
+            await session.run(
+                """
+                MATCH (n)
+                WHERE n.owner_id = $owner_id
+                DETACH DELETE n
+                """,
+                owner_id=str(owner_id),
             )
 
     async def project_event(self, event: OutboxEvent) -> None:

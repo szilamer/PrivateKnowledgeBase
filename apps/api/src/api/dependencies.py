@@ -35,6 +35,7 @@ from application.canonical.query_service import CanonicalQueryService, GraphQuer
 from application.content.preview import PreviewService
 from application.content.search import SearchService
 from application.knowledge.proposal_service import ProposalService
+from application.operations.service import OperationsService
 from application.policy import LocalPolicyService
 from application.projects.dashboard_service import ProjectDashboardService
 from application.projects.report_service import StatusReportService
@@ -57,7 +58,9 @@ class RequestServices:
     graph: GraphQueryService
     qa: QuestionAnsweringService
     dashboard: ProjectDashboardService
+    operations: OperationsService
     reports: StatusReportService
+    tasks: CeleryTaskDispatcher
     owner: OwnerContext
     correlation_id: str
 
@@ -115,7 +118,9 @@ def build_services(
         graph=graph_query,
         qa=QuestionAnsweringService(planner, synthesizer, policy),
         dashboard=ProjectDashboardService(canonical_repo, sources_repo, outbox_repo, policy),
+        operations=OperationsService(canonical_repo, outbox_repo, policy),
         reports=StatusReportService(canonical_repo, policy),
+        tasks=tasks,
         owner=OwnerContext(),
         correlation_id=correlation_id,
     )

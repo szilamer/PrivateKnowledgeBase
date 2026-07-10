@@ -39,6 +39,7 @@ secrets/
 
 # Docker volumes (local mounts)
 data/
+backups/
 
 # Logs
 *.log
