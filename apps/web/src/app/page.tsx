@@ -37,7 +37,9 @@ export default async function HomePage() {
           <li>
             <a href="/sources">Sources &amp; synchronization (Phase 1)</a>
           </li>
-          <li>Phase 2 — Parsing and retrieval foundation</li>
+          <li>
+            <a href="/search">Search (Phase 2)</a>
+          </li>
           <li>Phase 3 — Knowledge proposals</li>
         </ul>
       </section>

@@ -16,9 +16,9 @@ AI-powered personal knowledge operations system. Local-first Docker Compose MVP.
 
 ## Current phase
 
-**Phase 1 — Source registry and ingestion** (Phase 0 scaffolded).
+**Phase 2 — Parsing and retrieval foundation** (Phase 1 complete).
 
-Next epics: EPIC-02 Source connectors (local folder, GitHub, sync runs).
+Next: chunking, embeddings, pgvector search, source preview. Then Phase 3 knowledge proposals.
 
 ## Document precedence (highest first)
 

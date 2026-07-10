@@ -6,9 +6,9 @@ Cursor-specific configuration lives in `.cursor/rules/`, `.cursor/skills/`, and 
 
 ## Current phase
 
-**Phase 1 — Source registry and ingestion** (EPIC-02)
+**Phase 2 — Parsing and retrieval foundation** (Phase 1 complete)
 
-Phase 0 (platform foundation) is scaffolded. Next work: MVP-01 (register source), MVP-02 (synchronization).
+Phase 1 (MVP-01, MVP-02) is implemented. Current work: parsers, chunking, embeddings, pgvector search.
 
 ## Document precedence
 
@@ -118,8 +118,8 @@ Every significant change should include:
 | Phase | Status |
 |---|---|
 | Phase 0 — Repository and infrastructure | Done (scaffolded) |
-| Phase 1 — Source registry and ingestion | **Current** |
-| Phase 2 — Parsing and retrieval | Not started |
+| Phase 1 — Source registry and ingestion | Done |
+| Phase 2 — Parsing and retrieval | **Current** |
 | Phase 3 — Knowledge proposals | Not started |
 | Phase 4 — Canonical knowledge and graph | Not started |
 | Phase 5 — Q&A and project overview | Not started |

@@ -15,3 +15,7 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "change-me-in-production"
     session_secret: str = "change-me-to-a-random-32-byte-string"
+    llm_base_url: str = "http://localhost:11434/v1"
+    llm_api_key: str = ""
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimension: int = 1536

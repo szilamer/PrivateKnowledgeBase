@@ -41,6 +41,14 @@ async def _execute_sync(sync_run_id: UUID) -> None:
             failed=result.objects_failed,
         )
 
+    from celery import Celery
+
+    client = Celery(broker=settings.celery_broker_url)
+    client.send_task(
+        "worker.tasks.extraction.process_pending",
+        queue="extraction",
+    )
+
 
 @celery_app.task(
     name="worker.tasks.ingestion.run_sync",

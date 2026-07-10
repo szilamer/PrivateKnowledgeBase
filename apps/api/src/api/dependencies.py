@@ -2,6 +2,13 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from uuid import uuid4
 
+from adapters.content.loader import LocalAndGitHubContentLoader
+from adapters.embeddings.openai_compatible import OpenAICompatibleEmbeddingProvider
+from adapters.parsers.factory import ParserFactory
+from adapters.persistence.chunk_repository import (
+    PostgresChunkRepository,
+    PostgresVersionContentRepository,
+)
 from adapters.persistence.repositories import (
     PostgresAuditRepository,
     PostgresSourceRepository,
@@ -9,6 +16,8 @@ from adapters.persistence.repositories import (
 )
 from adapters.persistence.session import session_scope
 from adapters.tasks.celery_dispatcher import CeleryTaskDispatcher
+from application.content.preview import PreviewService
+from application.content.search import SearchService
 from application.policy import LocalPolicyService
 from application.sources.service import SourceRegistryService, SyncService
 from domain.errors import DomainError
@@ -21,6 +30,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 class RequestServices:
     sources: SourceRegistryService
     sync: SyncService
+    search: SearchService
+    preview: PreviewService
     owner: OwnerContext
     correlation_id: str
 
@@ -35,17 +46,25 @@ def build_services(
     session: AsyncSession,
     *,
     broker_url: str,
+    settings: object,
     correlation_id: str,
 ) -> RequestServices:
     sources_repo = PostgresSourceRepository(session)
     sync_repo = PostgresSyncRunRepository(session)
     audit_repo = PostgresAuditRepository(session)
+    chunk_repo = PostgresChunkRepository(session)
+    version_repo = PostgresVersionContentRepository(session)
     policy = LocalPolicyService()
     tasks = CeleryTaskDispatcher(broker_url)
+    embeddings = OpenAICompatibleEmbeddingProvider(settings)  # type: ignore[arg-type]
+    parser = ParserFactory()
+    loader = LocalAndGitHubContentLoader()
 
     return RequestServices(
         sources=SourceRegistryService(sources_repo, audit_repo, policy),
         sync=SyncService(sources_repo, sync_repo, audit_repo, policy, tasks),
+        search=SearchService(chunk_repo, embeddings, policy),
+        preview=PreviewService(version_repo, chunk_repo, parser, loader, policy),
         owner=OwnerContext(),
         correlation_id=correlation_id,
     )
@@ -61,6 +80,7 @@ async def get_services(
     yield build_services(
         session,
         broker_url=settings.celery_broker_url,
+        settings=settings,
         correlation_id=correlation_id,
     )
 
