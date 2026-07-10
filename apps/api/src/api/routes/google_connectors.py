@@ -10,7 +10,7 @@ from api.dependencies import RequestServices, domain_error_response, get_google_
 router = APIRouter(tags=["google-connectors"])
 
 
-@router.get("/connectors/google/auth-url")
+@router.get("/connectors/google/auth-url", response_model=None)
 async def google_auth_url(
     request: Request,
     oauth: GoogleOAuthService = Depends(get_google_oauth),
@@ -31,7 +31,7 @@ async def google_auth_url(
         )
 
 
-@router.get("/connectors/google/callback")
+@router.get("/connectors/google/callback", response_model=None)
 async def google_callback(
     request: Request,
     code: str = Query(...),
@@ -57,7 +57,7 @@ async def list_google_accounts(
     return {"items": accounts}
 
 
-@router.delete("/connectors/google/accounts/{account_alias}")
+@router.delete("/connectors/google/accounts/{account_alias}", response_model=None)
 async def revoke_google_account(
     account_alias: str,
     services: RequestServices = Depends(get_services),
@@ -73,7 +73,7 @@ async def revoke_google_account(
         )
 
 
-@router.get("/connectors/google/drive/folders")
+@router.get("/connectors/google/drive/folders", response_model=None)
 async def list_drive_folders(
     oauth: GoogleOAuthService = Depends(get_google_oauth),
     parent_id: str = Query(default="root"),
@@ -105,7 +105,7 @@ async def list_drive_folders(
     return {"items": payload.get("files", [])}
 
 
-@router.get("/connectors/google/calendars")
+@router.get("/connectors/google/calendars", response_model=None)
 async def list_calendars(
     oauth: GoogleOAuthService = Depends(get_google_oauth),
 ) -> dict[str, object] | JSONResponse:
