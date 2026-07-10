@@ -1,11 +1,13 @@
 from uuid import UUID
 
+from application.sources.browse_service import LocalFolderBrowseService
 from domain.errors import DomainError
 from domain.sources import RegisterGitHubSourceCommand, RegisterLocalSourceCommand
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from starlette.responses import JSONResponse
 
 from api.dependencies import RequestServices, domain_error_response, get_services
+from api.schemas.local_browse import LocalBrowseResponse, LocalFolderEntryResponse
 from api.schemas.sources import (
     GitHubSourceRequest,
     LocalSourceRequest,
@@ -14,6 +16,34 @@ from api.schemas.sources import (
 )
 
 router = APIRouter(tags=["sources"])
+
+
+def _browse_service(request: Request) -> LocalFolderBrowseService:
+    settings = request.app.state.settings
+    return LocalFolderBrowseService(host_root=settings.pkb_host_root)
+
+
+@router.get("/sources/local/browse", response_model=LocalBrowseResponse)
+async def browse_local_folders(
+    request: Request,
+    path: str = Query(default="~"),
+) -> LocalBrowseResponse:
+    result = _browse_service(request).browse(path)
+    return LocalBrowseResponse(
+        path=result.path,
+        parent_path=result.parent_path,
+        entries=[
+            LocalFolderEntryResponse(
+                name=entry.name,
+                path=entry.path,
+                has_children=entry.has_children,
+            )
+            for entry in result.entries
+        ],
+        can_select=result.can_select,
+        readable=result.readable,
+        error=result.error,
+    )
 
 
 def _to_response(source: object) -> SourceResponse:
@@ -70,9 +100,16 @@ async def get_source(
 @router.post("/sources/local", response_model=SourceResponse, status_code=201)
 async def register_local_source(
     body: LocalSourceRequest,
+    request: Request,
     services: RequestServices = Depends(get_services),
 ) -> SourceResponse | JSONResponse:
     try:
+        browse = _browse_service(request)
+        candidate_paths = list(body.paths)
+        if body.path.strip():
+            candidate_paths.append(body.path.strip())
+        for folder_path in candidate_paths:
+            browse.validate_selectable(folder_path)
         source = await services.sources.register_local(
             services.owner,
             RegisterLocalSourceCommand(**body.model_dump()),

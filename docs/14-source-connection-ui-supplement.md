@@ -106,9 +106,12 @@ Each tile one click → type-specific wizard.
 
 **Step 2 — Choose folders**
 
-- macOS-native folder picker OR drag-drop path chips
-- Support **multiple folders** per source
-- Show chosen paths as removable chips: `~/Projects`, `~/Documents/Projektek`
+- **Primary:** embedded **folder browser** backed by `GET /api/v1/sources/local/browse`
+- Breadcrumb navigation (`~` → `Projects` → …) and folder list; user opens subfolders by click
+- **„Ezen a mappán kiválasztása”** adds the current directory to the selection
+- Support **multiple folders** per source; selected paths shown as removable chips
+- **Secondary (collapsed):** „Több beállítás — útvonal kézi megadása” for power users only
+- Optional future enhancement: native `showDirectoryPicker()` where the browser supports it
 - Validation: path exists, readable, not system directory
 
 **Step 3 — File types**
@@ -322,7 +325,7 @@ Wizard state in React; persisted on final submit to API (`PUT /sources/config` o
 | Slice | Deliverable |
 |---|---|
 | UI-7a | Redesigned `/sources` overview + cards + empty state |
-| UI-7b | Local folder wizard with picker |
+| UI-7b | Local folder wizard with **API-backed folder browser** (browse + select; manual path advanced only) |
 | UI-7c | Google OAuth + account strip |
 | UI-7d | Drive folder browser step |
 | UI-7e | Gmail preset step |

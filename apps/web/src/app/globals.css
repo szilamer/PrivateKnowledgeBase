@@ -338,3 +338,77 @@ a {
 .back-link {
   margin-top: 1.5rem;
 }
+
+.folder-browser {
+  display: grid;
+  gap: 1rem;
+}
+
+.browser-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  font-size: 0.9rem;
+}
+
+.crumb {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.folder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.folder-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.folder-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.folder-item:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.folder-icon {
+  flex-shrink: 0;
+}
+
+.advanced-panel {
+  margin-top: 0.5rem;
+}
+
+.advanced-panel summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

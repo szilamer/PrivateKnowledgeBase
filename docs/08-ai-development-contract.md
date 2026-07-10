@@ -56,6 +56,8 @@ When implementing Phase 7, the agent MUST satisfy:
 | Google OAuth read-only scopes; tokens in `connector_credentials`, never in git or logs | FR-SRC-012, FR-SRC-017, ADR-013 |
 | Unified sync-run status for all connector types | FR-SRC-016 |
 | Source connection UI at `/sources` with Hungarian plain-language copy | supplement 14 |
+| Local folder wizard uses API folder browser; manual path entry is advanced-only | FR-SRC-018, FR-UI-SRC-002, supplement 14 §5.2 |
+| `GET /api/v1/sources/local/browse` for host folder navigation | FR-SRC-018, supplement 13 §8 |
 | SSR uses `API_INTERNAL_URL`; browser uses `NEXT_PUBLIC_API_URL` | supplement 14 §9 |
 
 ### 3.2 Application settings — LLM and embeddings

@@ -4,30 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { FolderBrowser } from "@/components/FolderBrowser";
 import { putSourcesConfig, registerLocalSource } from "@/lib/api";
 
 export default function ConnectLocalPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [pathInput, setPathInput] = useState("");
   const [paths, setPaths] = useState<string[]>([]);
   const [extensions, setExtensions] = useState({ md: true, txt: true, pdf: true });
   const [syncNow, setSyncNow] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  function addPath() {
-    const trimmed = pathInput.trim();
-    if (!trimmed) return;
-    if (!paths.includes(trimmed)) {
-      setPaths((current) => [...current, trimmed]);
-      if (!name) {
-        const base = trimmed.split("/").filter(Boolean).pop() ?? "Forrás";
-        setName(base);
-      }
+  function addPath(path: string) {
+    if (!paths.includes(path)) {
+      setPaths((current) => [...current, path]);
     }
-    setPathInput("");
   }
 
   function removePath(path: string) {
@@ -48,7 +41,7 @@ export default function ConnectLocalPage() {
       file_extensions: fileExtensions,
     });
     if (!created) {
-      setMessage("Nem sikerült hozzáadni a forrást. Ellenőrizd az elérési utakat.");
+      setMessage("Nem sikerült hozzáadni a forrást. Ellenőrizd, hogy a mappa elérhető és olvasható.");
       setLoading(false);
       return;
     }
@@ -102,28 +95,15 @@ export default function ConnectLocalPage() {
         {step === 2 && (
           <>
             <h2>Mappák kiválasztása</h2>
-            <p className="muted">Add meg a mappa elérési útját (pl. ~/Projects).</p>
-            <div className="chip-row">
-              <input
-                value={pathInput}
-                onChange={(e) => setPathInput(e.target.value)}
-                placeholder="~/Projects"
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addPath())}
-              />
-              <button type="button" onClick={addPath}>
-                Hozzáadás
-              </button>
-            </div>
-            <div className="chips">
-              {paths.map((path) => (
-                <span key={path} className="chip">
-                  {path}
-                  <button type="button" onClick={() => removePath(path)} aria-label="Eltávolítás">
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
+            <p className="muted">Böngéssz a mappák között, majd kattints a „Ezen a mappán kiválasztása” gombra.</p>
+            <FolderBrowser
+              selectedPaths={paths}
+              onSelectPath={addPath}
+              onRemovePath={removePath}
+              onSuggestName={(suggested) => {
+                if (!name) setName(suggested);
+              }}
+            />
             <div className="wizard-nav">
               <button type="button" onClick={() => setStep(1)}>
                 Vissza
@@ -176,7 +156,14 @@ export default function ConnectLocalPage() {
         {step === 4 && (
           <>
             <h2>Összegzés</h2>
-            <pre>{JSON.stringify({ name, paths, extensions }, null, 2)}</pre>
+            <ul>
+              <li>
+                <strong>Név:</strong> {name}
+              </li>
+              <li>
+                <strong>Mappák:</strong> {paths.join(", ")}
+              </li>
+            </ul>
             <label className="checkbox">
               <input type="checkbox" checked={syncNow} onChange={(e) => setSyncNow(e.target.checked)} />
               Szinkronizálás azonnal

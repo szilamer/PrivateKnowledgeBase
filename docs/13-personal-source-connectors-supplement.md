@@ -275,6 +275,7 @@ Preferred for local-first MVP+: **Option A** so the user still runs one `make up
 
 | Method | Path | Purpose |
 |---|---|---|
+| `GET` | `/api/v1/sources/local/browse` | Browse host folders for local source picker (`path` query, default `~`) |
 | `GET` | `/api/v1/sources/config` | Return effective merged config (secrets redacted) |
 | `PUT` | `/api/v1/sources/config` | Replace declarative config (validates schema) |
 | `GET` | `/api/v1/connectors/google/auth-url` | Start OAuth |
@@ -285,6 +286,12 @@ Preferred for local-first MVP+: **Option A** so the user still runs one `make up
 | `GET` | `/api/v1/connectors/google/calendars` | List calendars for picker |
 
 Existing `/api/v1/sources/*` and `/api/v1/sync-runs` remain valid.
+
+### FR-SRC-018 Local folder browser API
+
+The user browses host folders through the UI without typing paths. The API lists readable subdirectories under a validated root (`PKB_HOST_ROOT`, default `/host` mapped from the user home directory in Docker).
+
+**Acceptance:** Given Docker Compose with `${HOME}:/host:ro`, the user navigates `~` → `Projects` in the wizard and selects the folder without entering text.
 
 ## 9. Security and privacy
 

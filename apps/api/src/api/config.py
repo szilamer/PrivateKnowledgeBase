@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     sources_config_path: str = "config/sources.yaml"
     settings_config_path: str = "config/settings.yaml"
     host_path_manifest_path: str = "config/host-path-manifest.json"
+    pkb_host_root: str = "/host"
     pkb_source_dirs: str = ""
     google_client_id: str = ""
     google_client_secret: str = ""

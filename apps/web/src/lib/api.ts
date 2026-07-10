@@ -45,6 +45,30 @@ export type SourcesHealth = {
 
 const API_URL = getBrowserApiUrl();
 
+export type LocalBrowseEntry = {
+  name: string;
+  path: string;
+  has_children: boolean;
+};
+
+export type LocalBrowseResult = {
+  path: string;
+  parent_path: string | null;
+  entries: LocalBrowseEntry[];
+  can_select: boolean;
+  readable: boolean;
+  error: string | null;
+};
+
+export async function browseLocalFolder(path: string = "~"): Promise<LocalBrowseResult | null> {
+  const params = new URLSearchParams({ path });
+  const response = await fetch(`${API_URL}/api/v1/sources/local/browse?${params.toString()}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
 export async function listSources(): Promise<Source[]> {
   const response = await fetch(`${API_URL}/api/v1/sources`, { cache: "no-store" });
   if (!response.ok) return [];
