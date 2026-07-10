@@ -6,6 +6,7 @@ dependencies = [
     "pkb-domain",
     "pkb-application",
     "pkb-adapters",
+    "pkb-agents",
     "pkb-observability",
     "celery>=5.4",
     "redis>=5.2",
@@ -23,4 +24,5 @@ packages = ["src/worker"]
 pkb-domain = { workspace = true }
 pkb-application = { workspace = true }
 pkb-adapters = { workspace = true }
+pkb-agents = { workspace = true }
 pkb-observability = { workspace = true }

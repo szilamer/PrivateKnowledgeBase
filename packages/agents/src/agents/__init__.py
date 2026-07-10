@@ -1,3 +1,5 @@
-"""LangGraph agent flows — placeholder for Phase 3+."""
+"""LangGraph agent flows — extraction (Phase 3)."""
 
-__all__: list[str] = []
+from agents.extraction import ExtractionState, build_extraction_graph
+
+__all__ = ["ExtractionState", "build_extraction_graph"]

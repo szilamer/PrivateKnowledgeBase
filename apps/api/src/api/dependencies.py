@@ -9,6 +9,11 @@ from adapters.persistence.chunk_repository import (
     PostgresChunkRepository,
     PostgresVersionContentRepository,
 )
+from adapters.persistence.knowledge_repository import (
+    PostgresApprovalRepository,
+    PostgresEntityIndexRepository,
+    PostgresProposalRepository,
+)
 from adapters.persistence.repositories import (
     PostgresAuditRepository,
     PostgresSourceRepository,
@@ -18,6 +23,7 @@ from adapters.persistence.session import session_scope
 from adapters.tasks.celery_dispatcher import CeleryTaskDispatcher
 from application.content.preview import PreviewService
 from application.content.search import SearchService
+from application.knowledge.proposal_service import ProposalService
 from application.policy import LocalPolicyService
 from application.sources.service import SourceRegistryService, SyncService
 from domain.errors import DomainError
@@ -32,6 +38,7 @@ class RequestServices:
     sync: SyncService
     search: SearchService
     preview: PreviewService
+    proposals: ProposalService
     owner: OwnerContext
     correlation_id: str
 
@@ -59,12 +66,16 @@ def build_services(
     embeddings = OpenAICompatibleEmbeddingProvider(settings)  # type: ignore[arg-type]
     parser = ParserFactory()
     loader = LocalAndGitHubContentLoader()
+    proposal_repo = PostgresProposalRepository(session)
+    approval_repo = PostgresApprovalRepository(session)
+    entity_repo = PostgresEntityIndexRepository(session)
 
     return RequestServices(
         sources=SourceRegistryService(sources_repo, audit_repo, policy),
         sync=SyncService(sources_repo, sync_repo, audit_repo, policy, tasks),
         search=SearchService(chunk_repo, embeddings, policy),
         preview=PreviewService(version_repo, chunk_repo, parser, loader, policy),
+        proposals=ProposalService(proposal_repo, approval_repo, entity_repo, audit_repo, policy),
         owner=OwnerContext(),
         correlation_id=correlation_id,
     )

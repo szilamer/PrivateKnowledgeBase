@@ -6,9 +6,9 @@ Cursor-specific configuration lives in `.cursor/rules/`, `.cursor/skills/`, and 
 
 ## Current phase
 
-**Phase 2 — Parsing and retrieval foundation** (Phase 1 complete)
+**Phase 3 — Knowledge proposals** (Phase 1–2 complete)
 
-Phase 1 (MVP-01, MVP-02) is implemented. Current work: parsers, chunking, embeddings, pgvector search.
+Phase 1 (MVP-01, MVP-02) and Phase 2 (parsers, chunking, embeddings, search) are implemented. Current work: extraction schemas, LangGraph flow, entity resolution, proposal store, approval queue.
 
 ## Document precedence
 
@@ -119,8 +119,8 @@ Every significant change should include:
 |---|---|
 | Phase 0 — Repository and infrastructure | Done (scaffolded) |
 | Phase 1 — Source registry and ingestion | Done |
-| Phase 2 — Parsing and retrieval | **Current** |
-| Phase 3 — Knowledge proposals | Not started |
+| Phase 2 — Parsing and retrieval | Done |
+| Phase 3 — Knowledge proposals | **Current** |
 | Phase 4 — Canonical knowledge and graph | Not started |
 | Phase 5 — Q&A and project overview | Not started |
 | Phase 6 — Hardening | Not started |

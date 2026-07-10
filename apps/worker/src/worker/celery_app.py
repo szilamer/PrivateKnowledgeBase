@@ -23,6 +23,7 @@ celery_app.conf.update(
     task_routes={
         "worker.tasks.ingestion.*": {"queue": "ingestion"},
         "worker.tasks.extraction.*": {"queue": "extraction"},
+        "worker.tasks.knowledge_extraction.*": {"queue": "extraction"},
         "worker.tasks.embedding.*": {"queue": "embedding"},
         "worker.tasks.graph_projection.*": {"queue": "graph_projection"},
         "worker.tasks.maintenance.*": {"queue": "maintenance"},

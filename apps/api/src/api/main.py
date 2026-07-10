@@ -11,6 +11,7 @@ from starlette.responses import JSONResponse
 
 from api.config import Settings
 from api.routes.health import router as health_router
+from api.routes.proposals import router as proposals_router
 from api.routes.search import router as search_router
 from api.routes.sources import router as sources_router
 from api.routes.sync_runs import router as sync_runs_router
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(sources_router, prefix="/api/v1")
     app.include_router(sync_runs_router, prefix="/api/v1")
     app.include_router(search_router, prefix="/api/v1")
+    app.include_router(proposals_router, prefix="/api/v1")
     return app
 
 

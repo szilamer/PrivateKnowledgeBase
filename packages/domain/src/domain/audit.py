@@ -10,6 +10,13 @@ class AuditAction(StrEnum):
     SYNC_STARTED = "sync_started"
     SYNC_COMPLETED = "sync_completed"
     SYNC_FAILED = "sync_failed"
+    EXTRACTION_STARTED = "extraction_started"
+    EXTRACTION_COMPLETED = "extraction_completed"
+    EXTRACTION_FAILED = "extraction_failed"
+    PROPOSAL_APPROVED = "proposal_approved"
+    PROPOSAL_REJECTED = "proposal_rejected"
+    PROPOSAL_DEFERRED = "proposal_deferred"
+    PROPOSAL_EDITED = "proposal_edited"
 
 
 class AuditEvent(BaseModel):

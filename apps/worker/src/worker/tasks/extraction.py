@@ -35,7 +35,16 @@ async def _process_pending() -> int:
             parser=ParserFactory(),
             loader=LocalAndGitHubContentLoader(),
         )
-        return await processor.process_pending()
+        count = await processor.process_pending()
+    if count > 0:
+        from celery import Celery
+
+        client = Celery(broker=settings.celery_broker_url)
+        client.send_task(
+            "worker.tasks.knowledge_extraction.extract_pending",
+            queue="extraction",
+        )
+    return count
 
 
 async def _process_version(version_id: UUID) -> int:
@@ -47,7 +56,17 @@ async def _process_version(version_id: UUID) -> int:
             parser=ParserFactory(),
             loader=LocalAndGitHubContentLoader(),
         )
-        return await processor.process_version(version_id)
+        chunk_count = await processor.process_version(version_id)
+    if chunk_count > 0:
+        from celery import Celery
+
+        client = Celery(broker=settings.celery_broker_url)
+        client.send_task(
+            "worker.tasks.knowledge_extraction.extract_version",
+            args=[str(version_id)],
+            queue="extraction",
+        )
+    return chunk_count
 
 
 @celery_app.task(name="worker.tasks.extraction.process_pending", bind=True)

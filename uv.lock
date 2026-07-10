@@ -1158,6 +1158,7 @@ source = { editable = "apps/worker" }
 dependencies = [
     { name = "celery" },
     { name = "pkb-adapters" },
+    { name = "pkb-agents" },
     { name = "pkb-application" },
     { name = "pkb-domain" },
     { name = "pkb-observability" },
@@ -1169,6 +1170,7 @@ dependencies = [
 requires-dist = [
     { name = "celery", specifier = ">=5.4" },
     { name = "pkb-adapters", editable = "packages/adapters" },
+    { name = "pkb-agents", editable = "packages/agents" },
     { name = "pkb-application", editable = "packages/application" },
     { name = "pkb-domain", editable = "packages/domain" },
     { name = "pkb-observability", editable = "packages/observability" },

@@ -16,3 +16,4 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     embedding_model: str = "text-embedding-3-small"
     embedding_dimension: int = 1536
+    extraction_model: str = "gpt-4o-mini"

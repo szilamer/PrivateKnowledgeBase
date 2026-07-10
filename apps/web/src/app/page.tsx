@@ -15,7 +15,7 @@ export default async function HomePage() {
   return (
     <main className="page">
       <section className="hero">
-        <p className="eyebrow">Phase 0 — Platform Foundation</p>
+        <p className="eyebrow">Phase 3 — Knowledge proposals</p>
         <h1>Private Knowledge Base</h1>
         <p className="lead">
           Development environment for the AI-powered personal knowledge operations system.
@@ -40,7 +40,10 @@ export default async function HomePage() {
           <li>
             <a href="/search">Search (Phase 2)</a>
           </li>
-          <li>Phase 3 — Knowledge proposals</li>
+          <li>
+            <a href="/proposals">Approval queue (Phase 3)</a>
+          </li>
+          <li>Phase 4 — Canonical knowledge and graph</li>
         </ul>
       </section>
     </main>
