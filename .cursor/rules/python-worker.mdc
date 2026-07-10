@@ -1,0 +1,24 @@
+---
+description: Celery worker tasks and queue conventions
+globs: apps/worker/**
+alwaysApply: false
+---
+
+# Worker Layer (`apps/worker`)
+
+## Required queues
+
+`ingestion`, `extraction`, `embedding`, `graph_projection`, `maintenance`
+
+## Task rules
+
+- Every task idempotent
+- Transient errors: bounded exponential retry
+- Permanent errors: dead-letter state with operator retry
+- Durable business state in PostgreSQL — not only in Redis
+- Record correlation ID, model, prompt version, schema version for agent tasks
+- Tasks call application services — not database clients directly
+
+## Routing
+
+Use `task_routes` in `celery_app.py` to assign tasks to correct queues.

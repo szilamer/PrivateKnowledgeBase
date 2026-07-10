@@ -1,0 +1,23 @@
+---
+description: Next.js frontend conventions
+globs: apps/web/**
+alwaysApply: false
+---
+
+# Frontend (`apps/web`)
+
+Per ADR-008:
+
+- Next.js + TypeScript
+- Business logic does NOT live in React components
+- API client generated from OpenAPI where possible
+- Graph visualization behind an adapter component
+- Accessible design system based on headless primitives
+
+## MVP surfaces
+
+Sources/sync, processing status, proposal approval, hybrid search/Q&A, entity/graph views, audit, errors.
+
+## Data fetching
+
+Use `NEXT_PUBLIC_API_URL` for API base. Handle API error envelope consistently.

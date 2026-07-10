@@ -1,0 +1,18 @@
+---
+description: Alembic migration conventions
+globs: apps/api/alembic/**
+alwaysApply: false
+---
+
+# Alembic Migrations
+
+- Every migration has reversible `upgrade()` and `downgrade()`
+- PostgreSQL schemas: identity, sources, ingestion, content, knowledge, approval, ontology metadata, audit, outbox
+- Every row: stable ID + timestamps; mutable aggregates use optimistic versioning
+- pgvector extension required for embedding tables
+- Outbox events written atomically with canonical changes (transactional outbox pattern)
+- Test migrations: `alembic upgrade head` then `alembic downgrade -1` before committing
+
+## Naming
+
+Revision IDs descriptive: e.g. `0002_sources_registry`

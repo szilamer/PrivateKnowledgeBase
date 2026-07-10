@@ -1,0 +1,18 @@
+---
+description: Ontology YAML versioning and governance
+globs: packages/ontology/**
+alwaysApply: false
+---
+
+# Ontology Storage
+
+Per ADR-011:
+
+- Ontology defined in version-controlled YAML under `packages/ontology/definitions/`
+- Projected at runtime — not edited directly in the database
+- Ontology Curator Agent creates `OntologyProposal` records — it cannot alter normative YAML directly
+- Changes require approval workflow
+
+## YAML structure
+
+Each definition file includes `version`, `name`, `entity_types`, `relationship_types` with stable IDs.

@@ -2,6 +2,14 @@
 
 This repository implements the [AI Development Contract](docs/08-ai-development-contract.md).
 
+Cursor-specific configuration lives in `.cursor/rules/`, `.cursor/skills/`, and `.cursor/hooks.json`.
+
+## Current phase
+
+**Phase 1 — Source registry and ingestion** (EPIC-02)
+
+Phase 0 (platform foundation) is scaffolded. Next work: MVP-01 (register source), MVP-02 (synchronization).
+
 ## Document precedence
 
 1. Accepted ADRs in `docs/adr/`
@@ -22,14 +30,16 @@ packages/       Domain, application, adapters, agents, ontology, prompts, observ
 tests/          unit, integration, contract, e2e
 infra/docker/   Docker Compose stack
 docs/           Product and architecture documentation
+.cursor/        Cursor rules, skills, hooks
 ```
 
 ## Module boundaries
 
 - `packages/domain` MUST NOT import FastAPI, Celery, Neo4j drivers, provider SDKs, or UI code.
-- FastAPI routes perform validation, authorization, and use-case invocation only.
+- FastAPI routes perform validation, authorization checks, and use-case invocation only.
 - Neo4j writes are permitted only from the graph projection component.
 - All LLM outputs must be schema-validated.
+- LangGraph tools invoke application services — not database clients.
 
 ## Development commands
 
@@ -39,8 +49,80 @@ make dev-setup   # local tooling
 make up          # start full stack
 make test        # run tests
 make ci          # lint + typecheck + test
+make migrate     # Alembic migrations (stack running)
 ```
+
+## Cursor skills (project)
+
+| Skill | Use when |
+|---|---|
+| `implement-vertical-slice` | Starting any new feature or MVP requirement |
+| `phase-1-source-ingestion` | MVP-01, MVP-02, source connectors |
+| `add-api-endpoint` | New REST resource under `/api/v1` |
+| `add-celery-task` | Background job in ingestion/extraction/embedding/graph_projection/maintenance |
+| `add-alembic-migration` | PostgreSQL schema change |
+| `add-langgraph-agent` | Extraction, retrieval, or synthesis agent |
+| `neo4j-projection-only` | Graph reads or projection writes |
+| `create-adr-proposal` | Technology decision not covered by ADRs |
+| `run-quality-gates` | Before declaring work complete |
+
+## Change package template
+
+Every significant change should include:
+
+```
+## Summary
+[MVP-XX / EPIC-XX] Brief description
+
+## Requirements & ADRs
+- MVP-XX: ...
+- ADR-00X: ...
+
+## Design notes
+...
+
+## Tests
+- unit: ...
+- integration: ...
+
+## Migrations
+- 000X_name (reversible: yes/no)
+
+## Risks / rollback
+...
+
+## Open questions
+...
+```
+
+## Definition of done
+
+- [ ] Requirement ID linked
+- [ ] Tests pass (`make ci`)
+- [ ] Authorization and audit for mutating operations
+- [ ] Failure modes documented
+- [ ] Migrations included and reversible
+- [ ] Docs updated when behavior changes
+- [ ] No secrets in code or commits
+
+## Prohibited patterns
+
+- Substituting stack components without ADR
+- Direct Neo4j writes outside projector
+- Bypassing application services for canonical data
+- Weakening tests to pass
+- Secrets in code, logs, or prompts
 
 ## Implementation phases
 
-Follow `docs/11-implementation-plan-and-backlog.md`. Phase 0 (platform foundation) is scaffolded. Continue with Phase 1 (source registry and ingestion).
+| Phase | Status |
+|---|---|
+| Phase 0 — Repository and infrastructure | Done (scaffolded) |
+| Phase 1 — Source registry and ingestion | **Current** |
+| Phase 2 — Parsing and retrieval | Not started |
+| Phase 3 — Knowledge proposals | Not started |
+| Phase 4 — Canonical knowledge and graph | Not started |
+| Phase 5 — Q&A and project overview | Not started |
+| Phase 6 — Hardening | Not started |
+
+See `docs/11-implementation-plan-and-backlog.md` for full backlog.

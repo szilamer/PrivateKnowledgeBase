@@ -1,0 +1,19 @@
+---
+description: ADR governance — technology changes require ADRs
+globs: docs/adr/**,pyproject.toml,apps/*/pyproject.toml,packages/*/pyproject.toml,apps/web/package.json
+alwaysApply: false
+---
+
+# ADR Governance
+
+Technology decisions may change ONLY through a new or superseding ADR in `docs/adr/`.
+
+Before adding or changing dependencies in `pyproject.toml` or `package.json`:
+
+1. Verify an accepted ADR authorizes the technology
+2. If no ADR exists: stop implementation and create an ADR proposal first
+3. Update `docs/12-technology-decisions-and-adr-index.md` when ADR is accepted
+
+## Normative stack (reference)
+
+See `docs/12-technology-decisions-and-adr-index.md` — do not substitute components independently.

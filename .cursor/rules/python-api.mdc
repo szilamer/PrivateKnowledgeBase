@@ -1,0 +1,29 @@
+---
+description: FastAPI routes and API conventions
+globs: apps/api/**
+alwaysApply: false
+---
+
+# API Layer (`apps/api`)
+
+## Conventions
+
+- Base prefix: `/api/v1`
+- JSON request/response bodies
+- OpenAPI generated from code
+- Stable error envelope: `{ code, message, details, correlation_id }`
+- Cursor pagination for collections
+- Idempotency keys for user-triggered long-running operations
+
+## Route responsibilities ONLY
+
+1. Request validation (Pydantic)
+2. Authorization check
+3. Use-case invocation
+4. Response mapping
+
+No business logic in routes. No direct database access in routes.
+
+## Primary resources (MVP)
+
+`/sources`, `/sync-runs`, `/source-objects`, `/proposals`, `/entities`, `/claims`, `/projects`, `/search`, `/questions`, `/ontology-proposals`, `/audit-events`, `/health`

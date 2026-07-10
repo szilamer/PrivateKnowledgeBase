@@ -1,0 +1,31 @@
+---
+description: Testing strategy and quality targets
+globs: tests/**
+alwaysApply: false
+---
+
+# Testing Strategy
+
+Per `docs/09-testing-strategy.md`:
+
+## Layers
+
+- **unit/** — domain rules, validation, policy, parsers, ranking (no I/O)
+- **integration/** — PostgreSQL, pgvector, Neo4j, Redis/Celery, connectors (fixtures)
+- **contract/** — OpenAPI, LLM schemas, repository interfaces, event schemas
+- **e2e/** — register source → sync → approve → search → Q&A → graph browse
+
+## Quality targets
+
+- 100% schema-valid canonical writes
+- 100% provenance on approved claims
+- ≥95% source coverage for material answer claims (eval set)
+- No unauthorized results in retrieval security tests
+- Idempotent reprocessing of identical source versions
+- Rebuildable Neo4j projection
+
+## AI regression
+
+Prompt/model/schema/ontology changes must run evaluation suite against baseline.
+
+Do not weaken tests to pass. Add tests for new behavior.

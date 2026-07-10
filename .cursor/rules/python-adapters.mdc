@@ -1,0 +1,21 @@
+---
+description: Infrastructure adapters — DB, queue, external services
+globs: packages/adapters/**
+alwaysApply: false
+---
+
+# Adapters Layer (`packages/adapters`)
+
+- Implement repository interfaces; hide PostgreSQL, pgvector, Neo4j, Redis details
+- All SQL and Cypher statements parameterized — no string interpolation of user input
+- Celery calls behind `TaskDispatcher` adapter
+- Vector records store embedding model, dimension, content hash, created time
+- Never mix incompatible embedding spaces in one index
+
+## Neo4j
+
+Only the graph projector adapter writes to Neo4j. `GraphRepository` exposes bounded traversal only.
+
+## Idempotency
+
+Background task handlers must be safe to retry on identical inputs.

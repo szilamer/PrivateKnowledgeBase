@@ -1,0 +1,41 @@
+---
+description: Project context, stack, and current implementation phase
+alwaysApply: true
+---
+
+# Private Knowledge Base — Project Context
+
+AI-powered personal knowledge operations system. Local-first Docker Compose MVP.
+
+## Normative stack (do not substitute without ADR)
+
+- Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2.x, Alembic
+- PostgreSQL + pgvector, Neo4j Community, Redis + Celery
+- LangGraph, Next.js + TypeScript
+- Structured JSON logs, OpenTelemetry-compatible tracing
+
+## Current phase
+
+**Phase 1 — Source registry and ingestion** (Phase 0 scaffolded).
+
+Next epics: EPIC-02 Source connectors (local folder, GitHub, sync runs).
+
+## Document precedence (highest first)
+
+1. `docs/adr/` accepted ADRs
+2. `docs/07-technical-specification.md`
+3. `docs/06-system-architecture.md`
+4. `docs/04-domain-model-and-ontology.md`
+5. `docs/03-functional-specification.md`
+6. `docs/02-mvp-scope-and-product-requirements.md`
+7. `docs/01-project-vision-and-concept.md`
+
+Report conflicts between documents explicitly.
+
+## Key commands
+
+```bash
+make up          # start Docker Compose stack
+make ci          # lint + typecheck + test
+make migrate     # Alembic migrations
+```

@@ -1,0 +1,25 @@
+---
+description: LangGraph agents and structured AI outputs
+globs: packages/agents/**
+alwaysApply: false
+---
+
+# Agents Layer (`packages/agents`)
+
+Per `docs/05-agent-architecture.md`:
+
+- Stateful flows use LangGraph with versioned Pydantic state schemas
+- Tools invoke application services through explicit interfaces
+- All LLM outputs schema-validated before persistence
+- Record: model, provider, prompt version, schema version, token usage, latency, run ID
+- Agents MUST NOT write to Neo4j or canonical tables directly
+- Agents MUST NOT access sources outside caller authorization
+- Agents MUST NOT invent missing sources
+
+## Human-in-the-loop gates
+
+Mandatory review: ontology changes, destructive merges, low-confidence claims, access-policy changes.
+
+## Prompts
+
+Versioned prompt templates live in `packages/prompts/`. Reference prompt version in audit records.

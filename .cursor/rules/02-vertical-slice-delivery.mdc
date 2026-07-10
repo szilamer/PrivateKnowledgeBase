@@ -1,0 +1,28 @@
+---
+description: Vertical slice delivery — each feature ships end-to-end value
+alwaysApply: true
+---
+
+# Vertical Slice Delivery
+
+Each implementation slice MUST include:
+
+1. Domain logic (`packages/domain`, `packages/application`)
+2. Persistence adapter (`packages/adapters`)
+3. API endpoint (`apps/api`) or worker task (`apps/worker`)
+4. Authorization check at application-service boundary
+5. Audit event for mutating operations
+6. Tests (unit minimum; integration for adapters)
+7. Alembic migration if schema changes
+8. Minimal UI surface in `apps/web` when user-visible
+
+Do not implement "API only" or "DB only" slices. Link changes to MVP requirement IDs (e.g. MVP-01) or epic IDs (e.g. EPIC-02).
+
+## Change package (include in PR/commit description)
+
+- Summary and linked requirements
+- Design notes and ADR references
+- Changed files list
+- Tests added/updated
+- Migrations and rollback notes
+- Risks and unresolved questions

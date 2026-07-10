@@ -1,0 +1,26 @@
+---
+description: Domain layer rules — framework-independent business logic
+globs: packages/domain/**
+alwaysApply: false
+---
+
+# Domain Layer (`packages/domain`)
+
+## Imports — FORBIDDEN
+
+FastAPI, Celery, SQLAlchemy, Neo4j drivers, Redis, provider SDKs, UI code.
+
+## Allowed
+
+- Pydantic models for domain types and value objects
+- Pure Python logic, enums, domain exceptions
+- No I/O, no framework dependencies
+
+## Patterns
+
+- Opaque UUIDs for all domain object IDs
+- Source identity via `(source_id, external_id)` separate from UUID
+- Claim lifecycle: `proposed → approved → active → superseded | rejected | retracted`
+- Immutable `SourceObjectVersion` with content hash
+
+See `docs/04-domain-model-and-ontology.md` for aggregates and relationships.

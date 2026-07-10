@@ -58,5 +58,5 @@ jobs:
       - name: Install and typecheck
         working-directory: apps/web
         run: |
-          npm install
+          npm ci
           npm run typecheck

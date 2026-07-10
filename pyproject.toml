@@ -64,3 +64,11 @@ pythonpath = [
     "packages/prompts/src",
     "packages/observability/src",
 ]
+
+[[tool.mypy.overrides]]
+module = "celery.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "worker.tasks.*"
+disable_error_code = ["untyped-decorator"]

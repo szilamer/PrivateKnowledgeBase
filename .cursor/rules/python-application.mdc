@@ -1,0 +1,17 @@
+---
+description: Application layer — use cases and orchestration
+globs: packages/application/**
+alwaysApply: false
+---
+
+# Application Layer (`packages/application`)
+
+- Use cases orchestrate domain logic; they do not contain framework code
+- External systems accessed only through adapter interfaces defined here or in `packages/adapters`
+- Authorization policy service called before any data read or write
+- Audit events emitted for mutating operations
+- Application services are the only entry point for agents and workers to mutate state
+
+## Agent integration
+
+LangGraph tools invoke application services — never database clients directly.

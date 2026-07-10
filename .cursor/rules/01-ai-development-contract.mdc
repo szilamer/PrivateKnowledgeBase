@@ -1,0 +1,34 @@
+---
+description: Mandatory AI agent behavior from docs/08-ai-development-contract.md
+alwaysApply: true
+---
+
+# AI Development Contract
+
+## MUST
+
+- Cite the requirement ID or ADR implemented by each change
+- Preserve module boundaries (`domain` → `application` → `adapters` → `apps`)
+- Use only approved technologies from ADRs
+- Produce small, reviewable changes (vertical slices)
+- Add or update tests for changed behavior
+- Keep Alembic migrations reversible where feasible
+- Validate all structured LLM outputs against versioned schemas
+- Apply authorization before any data access
+- Preserve provenance and audit data
+- Update documentation when behavior changes
+
+## MUST NOT
+
+- Substitute framework, database, queue, or agent library without a new ADR
+- Add production dependencies without justification
+- Place secrets in code, examples, tests, logs, or prompts
+- Bypass application services to write canonical data
+- Write directly to Neo4j outside the graph projector
+- Weaken tests to make a change pass
+- Silently change public API contracts
+- Implement external side effects outside approved MVP scope
+
+## Open decisions
+
+If implementation requires a decision not covered by an accepted ADR: stop, create an ADR proposal, do not guess.
