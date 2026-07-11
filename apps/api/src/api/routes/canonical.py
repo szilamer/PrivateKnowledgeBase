@@ -158,6 +158,20 @@ async def list_contradictions(
                 conflicting_proposal_id=item.conflicting_proposal_id,
                 status=item.status.value,
                 summary=item.summary,
+                predicate=str(item.evidence.get("predicate"))
+                if item.evidence.get("predicate")
+                else None,
+                existing_value=str(item.evidence.get("existing_value"))
+                if item.evidence.get("existing_value")
+                else None,
+                conflicting_value=str(item.evidence.get("conflicting_value"))
+                if item.evidence.get("conflicting_value")
+                else None,
+                subject_entity_id=(
+                    UUID(str(item.evidence["subject_entity_id"]))
+                    if item.evidence.get("subject_entity_id")
+                    else None
+                ),
                 created_at=item.created_at,
             )
             for item in items

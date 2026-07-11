@@ -35,6 +35,7 @@ celery_app.conf.update(
 celery_app.autodiscover_tasks(["worker"])
 
 # Ensure task modules are registered (autodiscover alone misses src-layout submodules).
+import worker.recovery  # noqa: F401, E402 — re-queue pending sync runs on startup
 import worker.tasks.extraction  # noqa: F401, E402
 import worker.tasks.graph_projection  # noqa: F401, E402
 import worker.tasks.ingestion  # noqa: F401, E402

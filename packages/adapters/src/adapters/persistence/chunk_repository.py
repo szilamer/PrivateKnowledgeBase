@@ -185,7 +185,13 @@ class PostgresVersionContentRepository:
                 JOIN source_objects so ON so.id = sov.source_object_id
                 JOIN sources s ON s.id = so.source_id
                 WHERE sov.extraction_status = 'pending'
-                ORDER BY sov.observed_at
+                ORDER BY
+                  CASE
+                    WHEN so.external_id ILIKE '%.md' OR so.external_id ILIKE '%.txt' THEN 0
+                    WHEN so.external_id ILIKE '%.pdf' THEN 2
+                    ELSE 1
+                  END,
+                  sov.observed_at
                 LIMIT :limit
                 """
             ),
@@ -193,14 +199,35 @@ class PostgresVersionContentRepository:
         )
         return [dict(row._mapping) for row in result.fetchall()]
 
+    async def count_pending_extractions(self) -> int:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT COUNT(*) AS count
+                FROM source_object_versions
+                WHERE extraction_status = 'pending'
+                """
+            )
+        )
+        row = result.first()
+        if row is None:
+            return 0
+        return int(dict(row._mapping)["count"])
+
     async def update_extraction_status(
         self, version_id: UUID, status: str, *, error: str | None = None
     ) -> None:
         await self._session.execute(
-            text("UPDATE source_object_versions SET extraction_status = :status WHERE id = :id"),
-            {"id": version_id, "status": status},
+            text(
+                """
+                UPDATE source_object_versions
+                SET extraction_status = :status,
+                    extraction_error = :error
+                WHERE id = :id
+                """
+            ),
+            {"id": version_id, "status": status, "error": error},
         )
-        _ = error
 
     async def get_version_with_source(self, version_id: UUID) -> dict[str, object] | None:
         result = await self._session.execute(
@@ -219,3 +246,96 @@ class PostgresVersionContentRepository:
         )
         row = result.first()
         return dict(row._mapping) if row else None
+
+
+class PostgresSourceProcessingStatsRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_stats_for_source(
+        self, source_id: UUID, owner_id: UUID
+    ) -> dict[str, object] | None:
+        source_check = await self._session.execute(
+            text("SELECT id FROM sources WHERE id = :id AND owner_id = :owner_id"),
+            {"id": source_id, "owner_id": owner_id},
+        )
+        if source_check.first() is None:
+            return None
+
+        status_result = await self._session.execute(
+            text(
+                """
+                SELECT sov.extraction_status AS status, COUNT(*) AS count
+                FROM source_object_versions sov
+                JOIN source_objects so ON so.id = sov.source_object_id
+                WHERE so.source_id = :source_id
+                GROUP BY sov.extraction_status
+                """
+            ),
+            {"source_id": source_id},
+        )
+        extraction = {
+            str(dict(row._mapping)["status"]): int(dict(row._mapping)["count"])
+            for row in status_result.fetchall()
+        }
+
+        knowledge_result = await self._session.execute(
+            text(
+                """
+                SELECT sov.knowledge_status AS status, COUNT(*) AS count
+                FROM source_object_versions sov
+                JOIN source_objects so ON so.id = sov.source_object_id
+                WHERE so.source_id = :source_id
+                GROUP BY sov.knowledge_status
+                """
+            ),
+            {"source_id": source_id},
+        )
+        knowledge = {
+            str(dict(row._mapping)["status"]): int(dict(row._mapping)["count"])
+            for row in knowledge_result.fetchall()
+        }
+
+        chunk_result = await self._session.execute(
+            text(
+                """
+                SELECT COUNT(*) AS count
+                FROM content_chunks
+                WHERE source_id = :source_id AND owner_id = :owner_id
+                """
+            ),
+            {"source_id": source_id, "owner_id": owner_id},
+        )
+        chunk_row = chunk_result.first()
+        chunks = 0 if chunk_row is None else int(dict(chunk_row._mapping)["count"])
+
+        errors_result = await self._session.execute(
+            text(
+                """
+                SELECT so.external_id, sov.extraction_error
+                FROM source_object_versions sov
+                JOIN source_objects so ON so.id = sov.source_object_id
+                WHERE so.source_id = :source_id
+                  AND sov.extraction_status = 'failed'
+                  AND sov.extraction_error IS NOT NULL
+                ORDER BY sov.observed_at DESC
+                LIMIT 5
+                """
+            ),
+            {"source_id": source_id},
+        )
+        recent_errors = [
+            {
+                "external_id": str(dict(row._mapping)["external_id"]),
+                "error": str(dict(row._mapping)["extraction_error"]),
+            }
+            for row in errors_result.fetchall()
+        ]
+
+        return {
+            "source_id": source_id,
+            "extraction": extraction,
+            "knowledge": knowledge,
+            "content_chunks": chunks,
+            "recent_extraction_errors": recent_errors,
+        }

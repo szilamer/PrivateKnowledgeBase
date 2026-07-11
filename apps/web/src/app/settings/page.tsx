@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
+  clearLlmApiKey,
   getAppSettings,
   getLlmHealth,
   putAppSettings,
+  putLlmApiKey,
   type AppSettings,
   type LlmHealth,
 } from "@/lib/settings";
@@ -32,6 +34,11 @@ export default function SettingsPage() {
   const [health, setHealth] = useState<LlmHealth | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [savingApiKey, setSavingApiKey] = useState(false);
+
+  const apiKeyConfigured = settings.effective?.llm.api_key_configured ?? health?.api_key_configured ?? false;
+  const apiKeyPreview = settings.effective?.llm.api_key_preview ?? null;
 
   async function refresh() {
     const [loaded, llmHealth] = await Promise.all([getAppSettings(), getLlmHealth()]);
@@ -39,6 +46,7 @@ export default function SettingsPage() {
       setSettings({
         version: loaded.version ?? "1",
         llm: { ...defaultSettings.llm, ...loaded.llm },
+        effective: loaded.effective,
       });
     }
     setHealth(llmHealth);
@@ -47,6 +55,39 @@ export default function SettingsPage() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  async function handleSaveApiKey(event: React.FormEvent) {
+    event.preventDefault();
+    if (!apiKeyInput.trim()) {
+      setMessage("Írd be az API kulcsot a mentéshez.");
+      return;
+    }
+    setSavingApiKey(true);
+    setMessage(null);
+    const result = await putLlmApiKey(apiKeyInput.trim());
+    setSavingApiKey(false);
+    if (!result) {
+      setMessage("Nem sikerült menteni az API kulcsot.");
+      return;
+    }
+    setApiKeyInput("");
+    setMessage(result.message);
+    await refresh();
+  }
+
+  async function handleClearApiKey() {
+    if (!window.confirm("Biztosan törlöd a mentett API kulcsot?")) return;
+    setSavingApiKey(true);
+    setMessage(null);
+    const ok = await clearLlmApiKey();
+    setSavingApiKey(false);
+    if (!ok) {
+      setMessage("Nem sikerült törölni az API kulcsot.");
+      return;
+    }
+    setMessage("API kulcs törölve.");
+    await refresh();
+  }
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
@@ -68,28 +109,68 @@ export default function SettingsPage() {
         <p className="eyebrow">Beállítások</p>
         <h1>LLM és embedding</h1>
         <p className="lead">
-          Itt állíthatod be a kivonás, válaszgenerálás és keresés modelljeit. Az API kulcs a{" "}
-          <code>.env</code> fájlban marad.
+          Itt állíthatod be a modellt és a szolgáltatás címét. Az API kulcsot az alábbi űrlapon add meg —
+          a rendszer automatikusan, biztonságosan eltárolja.
         </p>
       </section>
 
       {message && <p className="message">{message}</p>}
 
+      <section className="panel api-key-panel">
+        <h2>API kulcs</h2>
+        <p>
+          Illeszd be az OpenAI (vagy más kompatibilis) API kulcsodat. A kulcs a szerveren tárolódik, nem a
+          böngészőben, és soha nem jelenik meg újra teljes egészében.
+        </p>
+        <form className="form" onSubmit={(e) => void handleSaveApiKey(e)}>
+          <label>
+            API kulcs
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder="sk-proj-..."
+              autoComplete="off"
+            />
+            <span className="field-hint">
+              {apiKeyConfigured
+                ? `Jelenleg beállítva: ${apiKeyPreview ?? "••••"} — új kulcs felülírja a régit.`
+                : "Még nincs mentett kulcs."}
+            </span>
+          </label>
+          <div className="form-actions">
+            <button type="submit" className="button primary" disabled={savingApiKey}>
+              {savingApiKey ? "Mentés…" : "API kulcs mentése"}
+            </button>
+            {apiKeyConfigured && (
+              <button type="button" className="button danger" onClick={() => void handleClearApiKey()} disabled={savingApiKey}>
+                Kulcs törlése
+              </button>
+            )}
+          </div>
+        </form>
+        <p className={`api-key-status ${apiKeyConfigured ? "ok" : "missing"}`}>
+          Állapot:{" "}
+          <strong>{apiKeyConfigured ? "API kulcs beállítva" : "API kulcs nincs beállítva"}</strong>
+          {apiKeyConfigured ? " — azonnal használható, újraindítás nem kell." : " — add meg fent, majd mentsd."}
+        </p>
+      </section>
+
       {health && (
         <section className="panel">
-          <h2>Állapot</h2>
+          <h2>Szolgáltatás állapota</h2>
           <p>
             <strong>{health.status}</strong>
             {health.message ? ` — ${health.message}` : ""}
           </p>
           <p className="muted">
-            API kulcs: {health.api_key_configured ? "beállítva" : "nincs beállítva"} · Embedding:{" "}
-            {health.embedding_provider}
+            Embedding: {health.embedding_provider} · URL: {health.base_url}
           </p>
         </section>
       )}
 
       <section className="panel wizard">
+        <h2>Modell beállítások</h2>
         <form className="form" onSubmit={(e) => void handleSave(e)}>
           <label className="checkbox">
             <input
@@ -109,19 +190,9 @@ export default function SettingsPage() {
               onChange={(e) =>
                 setSettings((s) => ({ ...s, llm: { ...s.llm, base_url: e.target.value } }))
               }
-              placeholder="http://localhost:11434/v1"
+              placeholder="https://api.openai.com/v1"
             />
-          </label>
-
-          <label>
-            API kulcs környezeti változó
-            <input
-              value={settings.llm.api_key_env}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, llm: { ...s.llm, api_key_env: e.target.value } }))
-              }
-              placeholder="LLM_API_KEY"
-            />
+            <span className="field-hint">OpenAI-hoz: https://api.openai.com/v1 · Ollama-hoz: http://localhost:11434/v1</span>
           </label>
 
           <label>
@@ -167,7 +238,7 @@ export default function SettingsPage() {
                 }))
               }
             >
-              <option value="auto">Automatikus (API kulcs nélkül offline)</option>
+              <option value="auto">Automatikus (kulcs nélkül offline)</option>
               <option value="hash">Offline hash embedding</option>
               <option value="api">API embedding (kulcs szükséges)</option>
             </select>
@@ -216,9 +287,7 @@ export default function SettingsPage() {
       </section>
 
       <p className="muted back-link">
-        <Link href="/">← Vissza a főoldalra</Link>
-        {" · "}
-        <Link href="/sources">Források</Link>
+        <Link href="/sources">← Források</Link>
       </p>
     </main>
   );

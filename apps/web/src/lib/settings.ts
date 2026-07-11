@@ -22,6 +22,7 @@ export type AppSettings = {
       base_url: string;
       api_key_env: string;
       api_key_configured: boolean;
+      api_key_preview?: string | null;
       extraction_model: string;
       synthesis_model: string;
       embedding: {
@@ -44,6 +45,12 @@ export type LlmHealth = {
   message: string | null;
 };
 
+export type LlmApiKeyStatus = {
+  api_key_configured: boolean;
+  api_key_preview: string | null;
+  message: string;
+};
+
 const API_URL = getBrowserApiUrl();
 
 export async function getAppSettings(): Promise<AppSettings | null> {
@@ -60,6 +67,23 @@ export async function putAppSettings(config: AppSettings): Promise<boolean> {
     body: JSON.stringify({ config }),
   });
   return response.ok;
+}
+
+export async function putLlmApiKey(apiKey: string): Promise<LlmApiKeyStatus | null> {
+  const response = await fetch(`${API_URL}/api/v1/settings/llm/api-key`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function clearLlmApiKey(): Promise<boolean> {
+  const response = await fetch(`${API_URL}/api/v1/settings/llm/api-key`, {
+    method: "DELETE",
+  });
+  return response.status === 204;
 }
 
 export async function getLlmHealth(): Promise<LlmHealth | null> {

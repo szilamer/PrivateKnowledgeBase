@@ -115,6 +115,33 @@ class PostgresCanonicalRepository:
         )
         return entity
 
+    async def update_entity(self, entity: CanonicalEntity) -> CanonicalEntity:
+        await self._session.execute(
+            text(
+                """
+                UPDATE canonical_entities
+                SET canonical_name = :canonical_name,
+                    aliases = CAST(:aliases AS jsonb),
+                    description = :description,
+                    status = :status,
+                    source_proposal_id = :source_proposal_id,
+                    updated_at = :updated_at
+                WHERE id = :id AND owner_id = :owner_id
+                """
+            ),
+            {
+                "id": entity.id,
+                "owner_id": entity.owner_id,
+                "canonical_name": entity.canonical_name,
+                "aliases": json.dumps(entity.aliases),
+                "description": entity.description,
+                "status": entity.status,
+                "source_proposal_id": entity.source_proposal_id,
+                "updated_at": entity.updated_at,
+            },
+        )
+        return entity
+
     async def get_entity(self, entity_id: UUID, owner_id: UUID) -> CanonicalEntity | None:
         result = await self._session.execute(
             text("SELECT * FROM canonical_entities WHERE id = :id AND owner_id = :owner_id"),
@@ -333,10 +360,12 @@ class PostgresCanonicalRepository:
                 """
                 INSERT INTO contradiction_findings (
                     id, owner_id, existing_claim_id, conflicting_claim_id,
-                    conflicting_proposal_id, status, summary, created_at, updated_at
+                    conflicting_proposal_id, status, summary, evidence,
+                    created_at, updated_at
                 ) VALUES (
                     :id, :owner_id, :existing_claim_id, :conflicting_claim_id,
-                    :conflicting_proposal_id, :status, :summary, :created_at, :updated_at
+                    :conflicting_proposal_id, :status, :summary,
+                    CAST(:evidence AS jsonb), :created_at, :updated_at
                 )
                 """
             ),
@@ -348,6 +377,7 @@ class PostgresCanonicalRepository:
                 "conflicting_proposal_id": finding.conflicting_proposal_id,
                 "status": finding.status.value,
                 "summary": finding.summary,
+                "evidence": json.dumps(finding.evidence),
                 "created_at": finding.created_at,
                 "updated_at": finding.updated_at,
             },
@@ -373,6 +403,7 @@ class PostgresCanonicalRepository:
                 conflicting_proposal_id=mapping.get("conflicting_proposal_id"),
                 status=ContradictionStatus(mapping["status"]),
                 summary=mapping["summary"],
+                evidence=mapping.get("evidence") or {},
                 created_at=mapping["created_at"],
                 updated_at=mapping["updated_at"],
             )

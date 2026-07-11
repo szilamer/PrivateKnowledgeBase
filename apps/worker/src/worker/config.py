@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     extraction_model: str = "gpt-4o-mini"
     synthesis_model: str = "gpt-4o-mini"
     settings_config_path: str = "config/settings.yaml"
+    llm_secrets_path: str = "config/llm-secrets.json"
     session_secret: str = "change-me-to-a-random-32-byte-string"
     google_client_id: str = ""
     google_client_secret: str = ""

@@ -4,6 +4,7 @@ from typing import Protocol
 
 import httpx
 from domain.extraction import ExtractionResult
+from domain.extraction_outcome import ExtractionLLMResult
 
 
 class LLMSettings(Protocol):
@@ -22,7 +23,7 @@ class OpenAICompatibleLLMProvider:
         self._base_url = settings.llm_base_url.rstrip("/")
         self._api_key = settings.llm_api_key or os.environ.get("LLM_API_KEY", "")
 
-    async def extract_knowledge(self, text: str, schema_version: str) -> ExtractionResult:
+    async def extract_knowledge(self, text: str, schema_version: str) -> ExtractionLLMResult:
         prompt = (
             "Extract structured knowledge from the document below. "
             "Return JSON matching schema version "
@@ -58,7 +59,10 @@ class OpenAICompatibleLLMProvider:
             content = body["choices"][0]["message"]["content"]
             parsed = json.loads(content)
             parsed.setdefault("schema_version", schema_version)
-            return ExtractionResult.model_validate(parsed)
+            result = ExtractionResult.model_validate(parsed)
+            usage = body.get("usage")
+            token_usage = dict(usage) if isinstance(usage, dict) else None
+            return ExtractionLLMResult(result=result, token_usage=token_usage)
 
     async def is_available(self) -> bool:
         if not self._base_url:

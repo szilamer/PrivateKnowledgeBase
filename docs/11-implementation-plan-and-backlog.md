@@ -1,6 +1,6 @@
 # Implementation Plan and Backlog
 
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** Draft
 
 ## 1. Delivery approach
@@ -82,7 +82,28 @@ Delivery slices:
 - **7f** — Source Connection UI (`/sources`, `/sources/connect/*` wizards, Hungarian copy)
 - **7g** — acceptance tests AT-SRC-01 … AT-SRC-05 and UX criteria from doc 14
 
-## 10. Initial epics
+## 10. Phase 8 — Agent layer completion
+
+Specification:
+
+- `docs/05-agent-architecture.md` — normative roles and safety rules
+- `docs/15-agent-implementation-plan.md` — phased delivery and acceptance criteria
+
+Delivery phases (see doc 15 §5 for full work items):
+
+- **8a / Phase A** — Extraction Agent hardening (schema gate, token usage, golden tests)
+- **8b / Phase C** — Entity Resolution Agent (explicit graph, merge gates)
+- **8c / Phase F** — Retrieval Planner Agent (LangGraph for hybrid mode)
+- **8d / Phase G** — Answer Synthesis Agent (citation validation, uncertainty output)
+- **8e / Phase D** — Contradiction Agent
+- **8f / Phase B** — Triage Agent
+- **8g / Phase H** — Project Report Agent
+- **8h / Phase E** — Ontology Curator Agent
+- **8i / Phase I** — Maintenance Agent
+
+**MVP agent exit** (doc 15 §11): phases 8a, 8b, 8c, 8d complete; doc 05 §8 rows marked **Implemented** for Extraction, Entity Resolution, Retrieval Planner, and Answer Synthesis.
+
+## 11. Initial epics
 
 - EPIC-01 Platform foundation
 - EPIC-02 Source connectors
@@ -96,7 +117,9 @@ Delivery slices:
 - EPIC-10 Security and operations
 - EPIC-11 Personal source connectors (Phase 7)
 - EPIC-12 Source connection UI (Phase 7)
+- EPIC-13 Triage agent (Phase 8b)
+- EPIC-14 Ontology curator agent (Phase 8h)
 
-## 11. MVP exit criteria
+## 12. MVP exit criteria
 
-All MVP requirements have passing acceptance tests, critical security findings are closed, recovery procedures are verified, the evaluation targets are met, and the technical documents reflect the implemented system.
+All MVP requirements have passing acceptance tests, critical security findings are closed, recovery procedures are verified, the evaluation targets are met, the technical documents reflect the implemented system, and agent layer MVP exit criteria in `docs/15-agent-implementation-plan.md` §11 are satisfied.

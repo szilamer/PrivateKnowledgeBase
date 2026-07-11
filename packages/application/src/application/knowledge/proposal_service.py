@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from domain.approval import ApprovalAction, ApprovalDecision
 from domain.audit import AuditAction, AuditEvent
+from domain.entity_resolution import AUTO_APPROVE_CONFIDENCE
 from domain.errors import DomainError
 from domain.identity import OwnerContext
 from domain.proposals import (
@@ -157,6 +158,99 @@ class ProposalService:
             approved.append(await self.approve(owner, proposal_id, correlation_id=correlation_id))
         return approved
 
+    async def merge_entities(
+        self,
+        owner: OwnerContext,
+        proposal_id: UUID,
+        *,
+        source_entity_id: UUID,
+        target_entity_id: UUID,
+        rationale: str | None = None,
+        correlation_id: str,
+    ) -> KnowledgeProposal:
+        """Destructive merge of two entities — human-only gate (Phase C, FR-APR-002)."""
+        proposal = await self.get_proposal(owner, proposal_id)
+        if proposal.status != ProposalStatus.PENDING:
+            raise DomainError("Proposal is not pending")
+        if proposal.proposal_type != ProposalType.ENTITY_RESOLUTION:
+            raise DomainError("Merge is only allowed for entity resolution proposals")
+        if source_entity_id == target_entity_id:
+            raise DomainError("Source and target entities must differ")
+
+        now = datetime.now(UTC)
+        merge_proposal = KnowledgeProposal(
+            id=uuid4(),
+            owner_id=owner.owner_id,
+            extraction_run_id=proposal.extraction_run_id,
+            proposal_type=ProposalType.MERGE,
+            status=ProposalStatus.APPROVED,
+            risk_level=RiskLevel.HIGH,
+            confidence=proposal.confidence,
+            title=f"Merge into {target_entity_id}",
+            payload={
+                "source_entity_id": str(source_entity_id),
+                "target_entity_id": str(target_entity_id),
+                "original_proposal_id": str(proposal_id),
+                "extracted_name": proposal.payload.get("name", proposal.title),
+            },
+            project_id=proposal.project_id,
+            source_id=proposal.source_id,
+            requires_review=True,
+            created_at=now,
+            updated_at=now,
+            evidence=proposal.evidence,
+        )
+
+        updated = await self._proposals.update_status(
+            proposal_id,
+            owner.owner_id,
+            ProposalStatus.MERGED.value,
+        )
+        if updated is None:
+            raise DomainError("Proposal not found")
+
+        await self._record_decision(
+            owner,
+            proposal_id,
+            ApprovalAction.MERGE,
+            rationale=rationale,
+            edited_payload=merge_proposal.payload,
+            correlation_id=correlation_id,
+        )
+        await self._materializer.materialize_approved_proposal(owner.owner_id, merge_proposal)
+        if self._on_materialized is not None:
+            await self._on_materialized.enqueue_projection()
+        return merge_proposal
+
+    async def auto_approve_confident(
+        self,
+        owner: OwnerContext,
+        *,
+        correlation_id: str,
+        min_confidence: float = AUTO_APPROVE_CONFIDENCE,
+        limit: int = 100,
+    ) -> list[KnowledgeProposal]:
+        """Approve pending proposals at or above the confidence threshold (default 80%)."""
+        self._policy.authorize_owner(owner, owner.owner_id)
+        filters = ProposalFilter(
+            status=ProposalStatus.PENDING,
+            min_confidence=min_confidence,
+            limit=limit,
+        )
+        items, _ = await self._proposals.list_proposals(owner.owner_id, filters)
+        approved: list[KnowledgeProposal] = []
+        for proposal in items:
+            if proposal.proposal_type in {
+                ProposalType.ENTITY_RESOLUTION,
+                ProposalType.RELATIONSHIP,
+                ProposalType.MERGE,
+            }:
+                continue
+            if proposal.confidence < min_confidence:
+                continue
+            approved.append(await self.approve(owner, proposal.id, correlation_id=correlation_id))
+        return approved
+
     async def _decide(
         self,
         owner: OwnerContext,
@@ -222,6 +316,7 @@ class ProposalService:
             ApprovalAction.REJECT: AuditAction.PROPOSAL_REJECTED,
             ApprovalAction.DEFER: AuditAction.PROPOSAL_DEFERRED,
             ApprovalAction.EDIT_AND_APPROVE: AuditAction.PROPOSAL_EDITED,
+            ApprovalAction.MERGE: AuditAction.PROPOSAL_EDITED,
         }.get(action)
         if audit_action and hasattr(self._audit, "append"):
             event = AuditEvent(

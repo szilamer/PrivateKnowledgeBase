@@ -46,9 +46,21 @@ export async function fetchNeighborhood(entityId: string): Promise<GraphView | n
   return response.json();
 }
 
-export async function listContradictions(): Promise<
-  Array<{ id: string; summary: string; status: string }>
-> {
+export type Contradiction = {
+  id: string;
+  summary: string;
+  status: string;
+  predicate: string | null;
+  existing_value: string | null;
+  conflicting_value: string | null;
+  existing_claim_id: string;
+  conflicting_claim_id: string | null;
+  conflicting_proposal_id: string | null;
+  subject_entity_id: string | null;
+  created_at: string;
+};
+
+export async function listContradictions(): Promise<Contradiction[]> {
   const response = await fetch(`${API_URL}/api/v1/contradictions?status=open`, {
     cache: "no-store",
   });

@@ -14,6 +14,11 @@ Cursor-specific configuration lives in `.cursor/rules/`, `.cursor/skills/`, and 
 - `docs/14-source-connection-ui-supplement.md` — intuitive source connection wizard UI
 - `docs/adr/ADR-013-google-workspace-connectors.md` (proposed)
 
+**Phase 8 — Agent layer completion** is specified in:
+
+- `docs/05-agent-architecture.md` — normative agent roles (§8 implementation status matrix)
+- `docs/15-agent-implementation-plan.md` — phased delivery, as-built baseline, acceptance criteria
+
 See [docs/operator-guide.md](docs/operator-guide.md) and [docs/release-checklist.md](docs/release-checklist.md) for Phase 6 operations.
 
 ## Document precedence

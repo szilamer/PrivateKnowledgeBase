@@ -136,6 +136,33 @@ class SourceRegistryService:
             raise DomainError(f"Source not found: {source_id}")
         return source
 
+    async def delete_source(
+        self,
+        ctx: OwnerContext,
+        source_id: UUID,
+        *,
+        correlation_id: str,
+    ) -> None:
+        self._policy.authorize_owner(ctx, DEFAULT_OWNER_ID)
+        source = await self._sources.get_by_id(source_id, DEFAULT_OWNER_ID)
+        if source is None:
+            raise DomainError(f"Source not found: {source_id}")
+        deleted = await self._sources.delete(source_id, DEFAULT_OWNER_ID)
+        if not deleted:
+            raise DomainError(f"Source not found: {source_id}")
+        await self._audit.append(
+            AuditEvent(
+                id=uuid4(),
+                actor_id=ctx.owner_id,
+                action=AuditAction.SOURCE_REMOVED,
+                object_type="source",
+                object_id=source_id,
+                correlation_id=correlation_id,
+                metadata={"type": source.type.value, "name": source.name},
+                created_at=_utcnow(),
+            )
+        )
+
 
 class SyncService:
     """MVP-02 / FR-ING-001, FR-ING-002 — start and track synchronization runs."""

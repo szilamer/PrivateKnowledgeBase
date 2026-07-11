@@ -4,10 +4,14 @@ from application.sources.browse_service import LocalFolderBrowseService
 from domain.errors import DomainError
 from domain.sources import RegisterGitHubSourceCommand, RegisterLocalSourceCommand
 from fastapi import APIRouter, Depends, Query, Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 from api.dependencies import RequestServices, domain_error_response, get_services
 from api.schemas.local_browse import LocalBrowseResponse, LocalFolderEntryResponse
+from api.schemas.processing_stats import (
+    ProcessingErrorSampleResponse,
+    SourceProcessingStatsResponse,
+)
 from api.schemas.sources import (
     GitHubSourceRequest,
     LocalSourceRequest,
@@ -82,6 +86,38 @@ async def list_sources(
         )
 
 
+@router.get("/sources/{source_id}/processing", response_model=SourceProcessingStatsResponse)
+async def get_source_processing_stats(
+    source_id: UUID,
+    services: RequestServices = Depends(get_services),
+) -> SourceProcessingStatsResponse | JSONResponse:
+    stats = await services.processing_stats.get_stats(services.owner, source_id)
+    if stats is None:
+        return JSONResponse(
+            status_code=404,
+            content=domain_error_response(
+                DomainError("Source not found"),
+                services.correlation_id,
+            ),
+        )
+    return SourceProcessingStatsResponse(
+        source_id=stats.source_id,
+        extraction_pending=stats.extraction_pending,
+        extraction_completed=stats.extraction_completed,
+        extraction_failed=stats.extraction_failed,
+        extraction_skipped=stats.extraction_skipped,
+        knowledge_pending=stats.knowledge_pending,
+        knowledge_completed=stats.knowledge_completed,
+        knowledge_failed=stats.knowledge_failed,
+        knowledge_skipped=stats.knowledge_skipped,
+        content_chunks=stats.content_chunks,
+        recent_extraction_errors=[
+            ProcessingErrorSampleResponse(external_id=item.external_id, error=item.error)
+            for item in stats.recent_extraction_errors
+        ],
+    )
+
+
 @router.get("/sources/{source_id}", response_model=SourceResponse)
 async def get_source(
     source_id: UUID,
@@ -90,6 +126,25 @@ async def get_source(
     try:
         source = await services.sources.get_source(services.owner, source_id)
         return _to_response(source)
+    except DomainError as exc:
+        return JSONResponse(
+            status_code=404,
+            content=domain_error_response(exc, services.correlation_id),
+        )
+
+
+@router.delete("/sources/{source_id}", status_code=204, response_model=None)
+async def delete_source(
+    source_id: UUID,
+    services: RequestServices = Depends(get_services),
+) -> Response | JSONResponse:
+    try:
+        await services.sources.delete_source(
+            services.owner,
+            source_id,
+            correlation_id=services.correlation_id,
+        )
+        return Response(status_code=204)
     except DomainError as exc:
         return JSONResponse(
             status_code=404,

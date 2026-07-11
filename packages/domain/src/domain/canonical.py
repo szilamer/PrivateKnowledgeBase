@@ -89,6 +89,7 @@ class ContradictionFinding(BaseModel):
     conflicting_proposal_id: UUID | None = None
     status: ContradictionStatus = ContradictionStatus.OPEN
     summary: str
+    evidence: dict[str, object] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 

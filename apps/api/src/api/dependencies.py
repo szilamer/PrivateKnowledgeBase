@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from pathlib import Path
 from uuid import uuid4
 
 from adapters.connectors.google.factory import build_google_oauth
@@ -18,6 +19,7 @@ from adapters.persistence.canonical_repository import (
 )
 from adapters.persistence.chunk_repository import (
     PostgresChunkRepository,
+    PostgresSourceProcessingStatsRepository,
     PostgresVersionContentRepository,
 )
 from adapters.persistence.knowledge_repository import (
@@ -31,6 +33,7 @@ from adapters.persistence.repositories import (
     PostgresSyncRunRepository,
 )
 from adapters.persistence.session import session_scope
+from adapters.settings.config_loader import load_app_settings
 from adapters.settings.resolver import ResolvedLlmSettings
 from adapters.tasks.celery_dispatcher import CeleryTaskDispatcher
 from application.canonical.materialization_service import CanonicalMaterializationService
@@ -43,7 +46,9 @@ from application.policy import LocalPolicyService
 from application.projects.dashboard_service import ProjectDashboardService
 from application.projects.report_service import StatusReportService
 from application.qa.answer_service import HybridRetrievalPlanner, QuestionAnsweringService
+from application.qa.synthesis_service import AnswerSynthesisService
 from application.sources.bootstrap_service import SourceBootstrapService
+from application.sources.processing_stats_service import SourceProcessingStatsService
 from application.sources.service import SourceRegistryService, SyncService
 from domain.errors import DomainError
 from domain.identity import OwnerContext
@@ -65,6 +70,7 @@ class RequestServices:
     dashboard: ProjectDashboardService
     operations: OperationsService
     reports: StatusReportService
+    processing_stats: SourceProcessingStatsService
     tasks: CeleryTaskDispatcher
     owner: OwnerContext
     correlation_id: str
@@ -118,8 +124,23 @@ def build_services(
         if resolved_llm.llm_enabled
         else heuristic
     )
-    planner = HybridRetrievalPlanner(search_service, canonical_repo, graph_repo, policy)
+    planner_version = "graph_v2"
+    synthesis_version = "graph_v2"
+    config_path = getattr(settings, "settings_config_path", "config/settings.yaml")
+    app_settings = load_app_settings(Path(config_path))
+    if app_settings is not None:
+        planner_version = app_settings.agents.planner.version
+        synthesis_version = app_settings.agents.synthesis.version
+
+    planner = HybridRetrievalPlanner(
+        search_service,
+        canonical_repo,
+        graph_repo,
+        policy,
+        planner_version=planner_version,
+    )
     bootstrap = SourceBootstrapService(sources_repo, audit_repo, path_bridge)
+    processing_stats_repo = PostgresSourceProcessingStatsRepository(session)
 
     return RequestServices(
         sources=SourceRegistryService(sources_repo, audit_repo, policy),
@@ -137,10 +158,17 @@ def build_services(
         ),
         canonical=CanonicalQueryService(canonical_repo, policy),
         graph=graph_query,
-        qa=QuestionAnsweringService(planner, synthesizer, policy),
+        qa=QuestionAnsweringService(
+            planner,
+            synthesizer,
+            policy,
+            audit=audit_repo,
+            synthesis=AnswerSynthesisService(use_graph=synthesis_version == "graph_v2"),
+        ),
         dashboard=ProjectDashboardService(canonical_repo, sources_repo, outbox_repo, policy),
         operations=OperationsService(canonical_repo, outbox_repo, policy),
         reports=StatusReportService(canonical_repo, policy),
+        processing_stats=SourceProcessingStatsService(processing_stats_repo, policy),
         tasks=tasks,
         owner=OwnerContext(),
         correlation_id=correlation_id,

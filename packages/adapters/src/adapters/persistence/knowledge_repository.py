@@ -325,10 +325,15 @@ class PostgresEntityIndexRepository:
         matches: list[EntityMatch] = []
         for row in result.fetchall():
             mapping = dict(row._mapping)
-            score = name_similarity(name, str(mapping["canonical_name"]))
+            canonical_score = name_similarity(name, str(mapping["canonical_name"]))
+            score = canonical_score
+            match_reason = "name_similarity"
             aliases = mapping.get("aliases") or []
             for alias in aliases:
-                score = max(score, name_similarity(name, str(alias)))
+                alias_score = name_similarity(name, str(alias))
+                if alias_score > score:
+                    score = alias_score
+                    match_reason = "alias"
             if score > 0.4:
                 matches.append(
                     EntityMatch(
@@ -336,11 +341,62 @@ class PostgresEntityIndexRepository:
                         canonical_name=str(mapping["canonical_name"]),
                         entity_type=EntityType(str(mapping["entity_type"])),
                         score=score,
-                        match_reason="name_similarity",
+                        match_reason=match_reason,
                     )
                 )
         matches.sort(key=lambda item: item.score, reverse=True)
         return matches[:limit]
+
+    async def append_alias(
+        self,
+        owner_id: UUID,
+        entity_id: UUID,
+        alias: str,
+        *,
+        source_proposal_id: UUID,
+    ) -> None:
+        from domain.entity_resolution import merge_alias_lists, normalize_name
+
+        result = await self._session.execute(
+            text(
+                """
+                SELECT id, canonical_name, aliases
+                FROM entity_index
+                WHERE owner_id = :owner_id
+                  AND canonical_entity_id = :entity_id
+                LIMIT 1
+                """
+            ),
+            {"owner_id": owner_id, "entity_id": entity_id},
+        )
+        row = result.fetchone()
+        if row is None:
+            return
+        mapping = dict(row._mapping)
+        canonical_name = str(mapping["canonical_name"])
+        existing_aliases = mapping.get("aliases") or []
+        if normalize_name(alias) == normalize_name(canonical_name):
+            return
+        merged = merge_alias_lists(
+            [str(item) for item in existing_aliases],
+            [alias],
+        )
+        await self._session.execute(
+            text(
+                """
+                UPDATE entity_index
+                SET aliases = CAST(:aliases AS jsonb),
+                    source_proposal_id = :source_proposal_id,
+                    updated_at = NOW()
+                WHERE id = :id
+                """
+            ),
+            {
+                "id": mapping["id"],
+                "aliases": json.dumps(merged),
+                "source_proposal_id": source_proposal_id,
+            },
+        )
 
     async def upsert_from_proposal(
         self, entry: EntityIndexEntry, *, source_proposal_id: UUID
@@ -431,6 +487,22 @@ class PostgresKnowledgeVersionRepository:
             {"limit": limit},
         )
         return [dict(row._mapping) for row in result.fetchall()]
+
+    async def count_pending_knowledge(self) -> int:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT COUNT(*) AS count
+                FROM source_object_versions
+                WHERE extraction_status = 'completed'
+                  AND knowledge_status = 'pending'
+                """
+            )
+        )
+        row = result.first()
+        if row is None:
+            return 0
+        return int(dict(row._mapping)["count"])
 
     async def update_knowledge_status(self, version_id: UUID, status: str) -> None:
         await self._session.execute(

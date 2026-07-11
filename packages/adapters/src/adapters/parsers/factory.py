@@ -1,4 +1,5 @@
 from domain.content import ParsedDocument, ParserType
+from domain.parsers import ParserError
 
 
 class TextParser:
@@ -29,13 +30,19 @@ class PdfParser:
     PARSER_VERSION = "0.1.0"
 
     def parse(self, content: bytes, mime_type: str | None, external_id: str) -> ParsedDocument:
-        _ = mime_type, external_id
+        _ = mime_type
         from io import BytesIO
 
         from pypdf import PdfReader
 
-        reader = PdfReader(BytesIO(content))
-        pages = [page.extract_text() or "" for page in reader.pages]
+        try:
+            reader = PdfReader(BytesIO(content))
+            pages = [page.extract_text() or "" for page in reader.pages]
+        except Exception as exc:  # noqa: BLE001 — surface parse failures per version
+            raise ParserError(
+                f"PDF parse failed for {external_id}: {exc}",
+                parser_type="pdf",
+            ) from exc
         return ParsedDocument(
             text="\n\n".join(pages).strip(),
             parser_type=ParserType.PDF,

@@ -18,6 +18,25 @@ class LlmSettingsConfig(BaseModel):
     embedding: EmbeddingSettingsConfig = Field(default_factory=EmbeddingSettingsConfig)
 
 
+class ExtractionAgentSettings(BaseModel):
+    use_langgraph: bool = True
+
+
+class PlannerAgentSettings(BaseModel):
+    version: Literal["deterministic", "graph_v2"] = "graph_v2"
+
+
+class SynthesisAgentSettings(BaseModel):
+    version: Literal["deterministic", "graph_v2"] = "graph_v2"
+
+
+class AgentsSettingsConfig(BaseModel):
+    extraction: ExtractionAgentSettings = Field(default_factory=ExtractionAgentSettings)
+    planner: PlannerAgentSettings = Field(default_factory=PlannerAgentSettings)
+    synthesis: SynthesisAgentSettings = Field(default_factory=SynthesisAgentSettings)
+
+
 class AppSettingsFile(BaseModel):
     version: str = "1"
     llm: LlmSettingsConfig = Field(default_factory=LlmSettingsConfig)
+    agents: AgentsSettingsConfig = Field(default_factory=AgentsSettingsConfig)

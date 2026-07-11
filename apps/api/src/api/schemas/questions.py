@@ -41,5 +41,7 @@ class QuestionAnswerResponse(BaseModel):
     claims: list[AnswerClaimResponse]
     related_entity_ids: list[UUID]
     retrieval_plan: list[RetrievalStepResponse]
+    warnings: list[str] = Field(default_factory=list)
+    conflicts: list[str] = Field(default_factory=list)
     model: str | None = None
     created_at: datetime

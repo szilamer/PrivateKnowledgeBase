@@ -14,6 +14,15 @@ class SourceType(StrEnum):
 
 SOURCE_CONFIG_NAMESPACE = UUID("00000000-0000-4000-8000-000000000101")
 
+DEFAULT_EXCLUDE_GLOBS = [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/__pycache__/**",
+    "**/temp_uploads/**",
+]
+
 
 def source_id_for_config(config_id: str) -> UUID:
     from uuid import uuid5
@@ -36,7 +45,7 @@ class RegisterLocalSourceCommand(BaseModel):
     path: str = ""
     paths: list[str] = Field(default_factory=list)
     file_extensions: list[str] = Field(default_factory=lambda: [".md", ".txt", ".pdf"])
-    exclude_globs: list[str] = Field(default_factory=lambda: ["**/node_modules/**", "**/.git/**"])
+    exclude_globs: list[str] = Field(default_factory=lambda: list(DEFAULT_EXCLUDE_GLOBS))
     default_project_id: UUID | None = None
     enabled: bool = True
 

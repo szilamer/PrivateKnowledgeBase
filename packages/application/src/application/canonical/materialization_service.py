@@ -7,14 +7,14 @@ from domain.canonical import (
     CanonicalRelationship,
     ClaimProvenance,
     ClaimStatus,
-    ContradictionFinding,
-    ContradictionStatus,
     OutboxEvent,
     OutboxEventStatus,
 )
 from domain.entities import EntityIndexEntry, EntityType
+from domain.entity_resolution import merge_alias_lists
 from domain.proposals import KnowledgeProposal, ProposalType
 
+from application.canonical.contradiction_service import ContradictionDetectionService
 from application.ports.canonical import CanonicalRepository, OutboxRepository
 from application.ports.knowledge import EntityIndexRepository
 
@@ -27,10 +27,13 @@ class CanonicalMaterializationService:
         canonical: CanonicalRepository,
         outbox: OutboxRepository,
         entities: EntityIndexRepository,
+        *,
+        contradictions: ContradictionDetectionService | None = None,
     ) -> None:
         self._canonical = canonical
         self._outbox = outbox
         self._entities = entities
+        self._contradictions = contradictions or ContradictionDetectionService(canonical)
 
     async def materialize_approved_proposal(
         self, owner_id: UUID, proposal: KnowledgeProposal
@@ -38,6 +41,8 @@ class CanonicalMaterializationService:
         now = datetime.now(UTC)
         if proposal.proposal_type in {ProposalType.ENTITY, ProposalType.ENTITY_RESOLUTION}:
             await self._materialize_entity(owner_id, proposal, now)
+        elif proposal.proposal_type == ProposalType.MERGE:
+            await self._materialize_merge(owner_id, proposal, now)
         elif proposal.proposal_type == ProposalType.RELATIONSHIP:
             await self._materialize_relationship(owner_id, proposal, now)
         elif proposal.proposal_type in {
@@ -51,21 +56,50 @@ class CanonicalMaterializationService:
     async def _materialize_entity(
         self, owner_id: UUID, proposal: KnowledgeProposal, now: datetime
     ) -> None:
-        name = str(proposal.payload.get("name", proposal.title))
+        extracted_name = str(proposal.payload.get("name", proposal.title))
         entity_type = EntityType(str(proposal.payload.get("entity_type", "concept")))
         aliases = proposal.payload.get("aliases", [])
-        entity_id = uuid4()
+        alias_list = [str(alias) for alias in aliases] if isinstance(aliases, list) else []
+
         if resolved := proposal.payload.get("resolved_entity_id"):
             existing = await self._canonical.get_entity(UUID(str(resolved)), owner_id)
-            if existing:
-                entity_id = existing.id
+            if existing is not None:
+                merged_aliases = merge_alias_lists(existing.aliases, [extracted_name, *alias_list])
+                updated = existing.model_copy(
+                    update={
+                        "aliases": merged_aliases,
+                        "source_proposal_id": proposal.id,
+                        "updated_at": now,
+                    }
+                )
+                await self._canonical.update_entity(updated)
+                await self._entities.append_alias(
+                    owner_id,
+                    existing.id,
+                    extracted_name,
+                    source_proposal_id=proposal.id,
+                )
+                await self._emit_outbox(
+                    aggregate_type="entity",
+                    aggregate_id=str(existing.id),
+                    event_type="entity.alias_added",
+                    payload={
+                        "entity_id": str(existing.id),
+                        "owner_id": str(owner_id),
+                        "alias": extracted_name,
+                        "source_proposal_id": str(proposal.id),
+                    },
+                    now=now,
+                )
+                return
 
+        entity_id = uuid4()
         entity = CanonicalEntity(
             id=entity_id,
             owner_id=owner_id,
             entity_type=entity_type,
-            canonical_name=name,
-            aliases=[str(alias) for alias in aliases] if isinstance(aliases, list) else [],
+            canonical_name=extracted_name,
+            aliases=alias_list,
             description=str(proposal.payload.get("description"))
             if proposal.payload.get("description")
             else None,
@@ -80,7 +114,7 @@ class CanonicalMaterializationService:
             id=uuid4(),
             owner_id=owner_id,
             entity_type=entity_type,
-            canonical_name=name,
+            canonical_name=extracted_name,
             aliases=entity.aliases,
             status="approved",
             source_proposal_id=proposal.id,
@@ -98,6 +132,59 @@ class CanonicalMaterializationService:
                 "entity_type": entity.entity_type.value,
                 "canonical_name": entity.canonical_name,
                 "aliases": entity.aliases,
+            },
+            now=now,
+        )
+
+    async def _materialize_merge(
+        self, owner_id: UUID, proposal: KnowledgeProposal, now: datetime
+    ) -> None:
+        source_id = UUID(str(proposal.payload["source_entity_id"]))
+        target_id = UUID(str(proposal.payload["target_entity_id"]))
+        source = await self._canonical.get_entity(source_id, owner_id)
+        target = await self._canonical.get_entity(target_id, owner_id)
+        if source is None or target is None:
+            return
+        if source.entity_type != target.entity_type:
+            return
+
+        merged_aliases = merge_alias_lists(
+            target.aliases,
+            [source.canonical_name, *source.aliases],
+        )
+        updated_target = target.model_copy(
+            update={
+                "aliases": merged_aliases,
+                "source_proposal_id": proposal.id,
+                "updated_at": now,
+            }
+        )
+        merged_source = source.model_copy(
+            update={
+                "status": "merged",
+                "source_proposal_id": proposal.id,
+                "updated_at": now,
+            }
+        )
+        await self._canonical.update_entity(updated_target)
+        await self._canonical.update_entity(merged_source)
+        await self._entities.append_alias(
+            owner_id,
+            target.id,
+            source.canonical_name,
+            source_proposal_id=proposal.id,
+        )
+
+        await self._emit_outbox(
+            aggregate_type="entity",
+            aggregate_id=str(target.id),
+            event_type="entity.merged",
+            payload={
+                "target_entity_id": str(target.id),
+                "source_entity_id": str(source.id),
+                "owner_id": str(owner_id),
+                "merged_aliases": merged_aliases,
+                "source_proposal_id": str(proposal.id),
             },
             now=now,
         )
@@ -192,8 +279,8 @@ class CanonicalMaterializationService:
         for item in claim.provenance:
             item.claim_id = claim.id
 
-        await self._detect_contradictions(owner_id, claim, proposal, now)
         await self._canonical.create_claim(claim)
+        await self._detect_contradictions(owner_id, claim, proposal, now)
         await self._emit_outbox(
             aggregate_type="claim",
             aggregate_id=str(claim.id),
@@ -217,27 +304,13 @@ class CanonicalMaterializationService:
         proposal: KnowledgeProposal,
         now: datetime,
     ) -> None:
-        existing = await self._canonical.find_active_claims(
+        outcome = await self._contradictions.detect_for_claim(
             owner_id,
-            subject_entity_id=claim.subject_entity_id,
-            predicate=claim.predicate,
+            claim,
+            proposal,
+            now=now,
         )
-        for prior in existing:
-            if prior.object_value.strip().lower() == claim.object_value.strip().lower():
-                continue
-            finding = ContradictionFinding(
-                id=uuid4(),
-                owner_id=owner_id,
-                existing_claim_id=prior.id,
-                conflicting_proposal_id=proposal.id,
-                status=ContradictionStatus.OPEN,
-                summary=(
-                    f"Potential contradiction on '{claim.predicate}': "
-                    f"'{prior.object_value}' vs '{claim.object_value}'"
-                ),
-                created_at=now,
-                updated_at=now,
-            )
+        for finding in outcome.findings:
             await self._canonical.create_contradiction(finding)
             await self._emit_outbox(
                 aggregate_type="contradiction",
@@ -246,9 +319,17 @@ class CanonicalMaterializationService:
                 payload={
                     "finding_id": str(finding.id),
                     "owner_id": str(owner_id),
-                    "existing_claim_id": str(prior.id),
-                    "conflicting_proposal_id": str(proposal.id),
+                    "existing_claim_id": str(finding.existing_claim_id),
+                    "conflicting_claim_id": (
+                        str(finding.conflicting_claim_id) if finding.conflicting_claim_id else None
+                    ),
+                    "conflicting_proposal_id": (
+                        str(finding.conflicting_proposal_id)
+                        if finding.conflicting_proposal_id
+                        else None
+                    ),
                     "summary": finding.summary,
+                    "evidence": finding.evidence,
                 },
                 now=now,
             )

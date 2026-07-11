@@ -50,3 +50,14 @@ export async function deferProposal(id: string): Promise<Proposal | null> {
   if (!response.ok) return null;
   return response.json();
 }
+
+export async function autoApproveConfident(): Promise<{
+  approved_count: number;
+  message: string;
+} | null> {
+  const response = await fetch(`${API_URL}/api/v1/proposals/auto-approve`, {
+    method: "POST",
+  });
+  if (!response.ok) return null;
+  return response.json();
+}

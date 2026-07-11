@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class AuditAction(StrEnum):
     SOURCE_REGISTERED = "source_registered"
+    SOURCE_REMOVED = "source_removed"
     SYNC_STARTED = "sync_started"
     SYNC_COMPLETED = "sync_completed"
     SYNC_FAILED = "sync_failed"
@@ -17,6 +18,7 @@ class AuditAction(StrEnum):
     PROPOSAL_REJECTED = "proposal_rejected"
     PROPOSAL_DEFERRED = "proposal_deferred"
     PROPOSAL_EDITED = "proposal_edited"
+    RETRIEVAL_PLANNED = "retrieval_planned"
 
 
 class AuditEvent(BaseModel):

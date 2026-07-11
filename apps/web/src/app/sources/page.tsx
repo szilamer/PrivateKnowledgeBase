@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
+  deleteSource,
+  formatProcessingSummary,
+  getSourceProcessingStats,
   getGoogleAuthUrl,
   listGoogleAccounts,
   listSources,
@@ -12,8 +15,12 @@ import {
   sourceTypeLabel,
   startSync,
   syncStatusLabel,
+  pickDisplaySyncRun,
+  hasStuckPendingSync,
+  isSyncInFlight,
   type GoogleAccount,
   type Source,
+  type SourceProcessingStats,
   type SyncRun,
 } from "@/lib/api";
 
@@ -21,22 +28,34 @@ function isActiveSync(run: SyncRun | undefined): boolean {
   return run?.status === "pending" || run?.status === "running";
 }
 
+function anySyncInFlight(syncRuns: Record<string, SyncRun[]>): boolean {
+  return Object.values(syncRuns).some((runs) => isSyncInFlight(runs));
+}
+
 export default function SourcesPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [syncRuns, setSyncRuns] = useState<Record<string, SyncRun[]>>({});
+  const [processingStats, setProcessingStats] = useState<Record<string, SourceProcessingStats>>(
+    {},
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [syncingSourceId, setSyncingSourceId] = useState<string | null>(null);
+  const [removingSourceId, setRemovingSourceId] = useState<string | null>(null);
 
   async function refresh() {
     const [items, googleAccounts] = await Promise.all([listSources(), listGoogleAccounts()]);
     setSources(items);
     setAccounts(googleAccounts);
     const runs: Record<string, SyncRun[]> = {};
+    const stats: Record<string, SourceProcessingStats> = {};
     for (const source of items) {
       runs[source.id] = await listSyncRuns(source.id);
+      const processing = await getSourceProcessingStats(source.id);
+      if (processing) stats[source.id] = processing;
     }
     setSyncRuns(runs);
+    setProcessingStats(stats);
   }
 
   useEffect(() => {
@@ -44,10 +63,7 @@ export default function SourcesPage() {
   }, []);
 
   useEffect(() => {
-    const hasActive = Object.values(syncRuns)
-      .flat()
-      .some((run) => isActiveSync(run));
-    if (!hasActive) return;
+    if (!anySyncInFlight(syncRuns)) return;
 
     const interval = window.setInterval(() => {
       void refresh();
@@ -69,6 +85,33 @@ export default function SourcesPage() {
       await refresh();
     } finally {
       setSyncingSourceId(null);
+    }
+  }
+
+  async function handleRemove(source: Source) {
+    const hostPaths = Array.isArray(source.configuration.host_paths)
+      ? (source.configuration.host_paths as string[]).join(", ")
+      : "";
+    const confirmed = window.confirm(
+      `Eltávolítod a „${source.name}” forrást?\n\n` +
+        "A forrás leáll, a jövőbeli szinkronizálás megszűnik. " +
+        "A már jóváhagyott tudás a rendszerben megmarad.\n\n" +
+        (hostPaths ? `Mappa: ${hostPaths}` : ""),
+    );
+    if (!confirmed) return;
+
+    setRemovingSourceId(source.id);
+    setMessage(null);
+    try {
+      const ok = await deleteSource(source.id);
+      if (!ok) {
+        setMessage("Nem sikerült eltávolítani a forrást.");
+        return;
+      }
+      setMessage(`„${source.name}” forrás eltávolítva.`);
+      await refresh();
+    } finally {
+      setRemovingSourceId(null);
     }
   }
 
@@ -133,9 +176,13 @@ export default function SourcesPage() {
         ) : (
           <div className="source-grid">
             {sources.map((source) => {
-              const latest = (syncRuns[source.id] ?? [])[0];
-              const active = isActiveSync(latest);
-              const busy = syncingSourceId === source.id || active;
+              const runs = syncRuns[source.id] ?? [];
+              const newest = runs[0];
+              const display = pickDisplaySyncRun(runs);
+              const processing = processingStats[source.id];
+              const inFlight = isSyncInFlight(runs);
+              const busy = syncingSourceId === source.id || inFlight;
+              const stuckQueue = hasStuckPendingSync(runs);
               return (
                 <article key={source.id} className="source-card">
                   <div className="source-card-head">
@@ -147,23 +194,50 @@ export default function SourcesPage() {
                       {source.enabled ? "Aktív" : "Szüneteltetve"}
                     </span>
                   </div>
-                  {latest ? (
-                    <p className={`run ${active ? "run-active" : ""}`}>
-                      {syncStatusLabel(latest.status)} — {latest.objects_processed} feldolgozva
-                      {latest.objects_discovered > 0 ? ` / ${latest.objects_discovered} fájl` : ""}
-                      {latest.objects_failed > 0 ? `, ${latest.objects_failed} hiba` : ""}
+                  {display ? (
+                    <p className={`run ${inFlight || isActiveSync(newest) ? "run-active" : ""}`}>
+                      {syncStatusLabel(display.status)} — {display.objects_processed} feldolgozva
+                      {display.objects_discovered > 0 ? ` / ${display.objects_discovered} fájl` : ""}
+                      {display.objects_failed > 0 ? `, ${display.objects_failed} hiba` : ""}
                     </p>
                   ) : (
                     <p className="run muted">Még nem volt szinkronizálás.</p>
                   )}
-                  {active && (
+                  {processing && (
+                    <p className="run muted">{formatProcessingSummary(processing)}</p>
+                  )}
+                  {processing && processing.extraction_failed > 0 && (
+                    <p className="muted sync-hint">
+                      {processing.extraction_failed} fájl feldolgozási hibával —{" "}
+                      {processing.recent_extraction_errors[0]?.external_id ?? "részletek az API-ban"}
+                    </p>
+                  )}
+                  {stuckQueue && (
+                    <p className="muted sync-hint">
+                      Egy korábbi szinkron beragadt a sorban — nyomd meg újra a „Szinkronizálás most” gombot.
+                    </p>
+                  )}
+                  {inFlight && (
                     <p className="muted sync-hint">
                       Szinkronizálás folyamatban — nagy mappáknál ez több percig is eltarthat.
                     </p>
                   )}
                   <div className="source-card-actions">
-                    <button type="button" onClick={() => void handleSync(source.id)} disabled={busy}>
+                    <button
+                      type="button"
+                      className="button primary"
+                      onClick={() => void handleSync(source.id)}
+                      disabled={busy || removingSourceId === source.id}
+                    >
                       {busy ? "Szinkronizálás…" : "Szinkronizálás most"}
+                    </button>
+                    <button
+                      type="button"
+                      className="button danger"
+                      onClick={() => void handleRemove(source)}
+                      disabled={busy || removingSourceId === source.id}
+                    >
+                      {removingSourceId === source.id ? "Eltávolítás…" : "Forrás eltávolítása"}
                     </button>
                   </div>
                 </article>

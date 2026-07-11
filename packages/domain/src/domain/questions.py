@@ -50,5 +50,7 @@ class QuestionAnswer(BaseModel):
     claims: list[AnswerClaim] = Field(default_factory=list)
     related_entity_ids: list[UUID] = Field(default_factory=list)
     retrieval_plan: list[RetrievalPlanStep] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    conflicts: list[str] = Field(default_factory=list)
     model: str | None = None
     created_at: datetime

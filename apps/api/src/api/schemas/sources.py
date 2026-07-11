@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from domain.sources import SourceType
+from domain.sources import DEFAULT_EXCLUDE_GLOBS, SourceType
 from domain.sync import SyncMode, SyncRunStatus
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ class LocalSourceRequest(BaseModel):
     path: str = ""
     paths: list[str] = Field(default_factory=list)
     file_extensions: list[str] = Field(default_factory=lambda: [".md", ".txt", ".pdf"])
-    exclude_globs: list[str] = Field(default_factory=lambda: ["**/node_modules/**", "**/.git/**"])
+    exclude_globs: list[str] = Field(default_factory=lambda: list(DEFAULT_EXCLUDE_GLOBS))
     default_project_id: UUID | None = None
     enabled: bool = True
 

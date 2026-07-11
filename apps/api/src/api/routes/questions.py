@@ -21,6 +21,7 @@ async def ask_question(
     answer = await services.qa.ask(
         services.owner,
         QuestionRequest(question=body.question, mode=body.mode, limit=body.limit),
+        correlation_id=services.correlation_id,
     )
     return QuestionAnswerResponse(
         question=answer.question,
@@ -56,6 +57,8 @@ async def ask_question(
             )
             for step in answer.retrieval_plan
         ],
+        warnings=answer.warnings,
+        conflicts=answer.conflicts,
         model=answer.model,
         created_at=answer.created_at,
     )

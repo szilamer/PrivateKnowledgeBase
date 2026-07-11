@@ -1,10 +1,13 @@
 import re
 
 from domain.entities import EntityMatch, EntityType
+from domain.entity_resolution_outcome import EntityResolutionProposalSpec
 from domain.extraction import ExtractedEntity
+from domain.proposals import ProposalType
 
 _MATCH_THRESHOLD = 0.72
 _AMBIGUITY_GAP = 0.08
+AUTO_APPROVE_CONFIDENCE = 0.8
 
 
 def normalize_name(name: str) -> str:
@@ -59,9 +62,60 @@ def classify_risk(entity_type: EntityType, confidence: float) -> str:
     return "medium"
 
 
-def requires_review(risk_level: str, proposal_type: str) -> bool:
+def merge_alias_lists(existing: list[str], additions: list[str]) -> list[str]:
+    """Deduplicate aliases case-insensitively while preserving first-seen casing."""
+    merged: list[str] = []
+    seen: set[str] = set()
+    for name in [*existing, *additions]:
+        normalized = normalize_name(name)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        merged.append(name.strip())
+    return merged
+
+
+def build_entity_resolution_spec(
+    entity: ExtractedEntity,
+    action: str,
+    matches: list[EntityMatch],
+) -> EntityResolutionProposalSpec:
+    """Map deterministic resolution action to proposal type and payload."""
+    risk = classify_risk(entity.entity_type, entity.confidence)
+    proposal_type = ProposalType.ENTITY_RESOLUTION if action == "ambiguous" else ProposalType.ENTITY
+    payload: dict[str, object] = entity.model_dump(mode="json")
+    payload["resolution_action"] = action
+    if action == "link" and matches:
+        payload["resolved_entity_id"] = str(matches[0].entity_id)
+    if action == "ambiguous":
+        payload["candidates"] = [match.model_dump(mode="json") for match in matches]
+    elif matches:
+        payload["ranked_candidates"] = [match.model_dump(mode="json") for match in matches[:5]]
+
+    needs_review = requires_review(risk, proposal_type.value, confidence=entity.confidence)
+    return EntityResolutionProposalSpec(
+        entity=entity,
+        resolution_action=action,
+        proposal_type=proposal_type,
+        payload=payload,
+        needs_review=needs_review,
+        risk_level=risk,
+        candidates=matches[:5] if action == "ambiguous" else matches[:1],
+    )
+
+
+def requires_review(
+    risk_level: str,
+    proposal_type: str,
+    *,
+    confidence: float | None = None,
+) -> bool:
+    if proposal_type in {"entity_resolution", "merge"}:
+        return True
+    if proposal_type == "relationship":
+        return True
     if risk_level == "high":
         return True
-    if proposal_type == "entity_resolution":
-        return True
+    if confidence is not None and confidence >= AUTO_APPROVE_CONFIDENCE:
+        return False
     return risk_level != "low"

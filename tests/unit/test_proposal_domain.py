@@ -15,5 +15,21 @@ def test_requires_review_entity_resolution() -> None:
     assert requires_review("low", ProposalType.ENTITY_RESOLUTION.value) is True
 
 
+def test_requires_review_merge() -> None:
+    assert requires_review("low", ProposalType.MERGE.value) is True
+
+
+def test_requires_review_auto_approves_high_confidence_entity() -> None:
+    assert requires_review("medium", ProposalType.ENTITY.value, confidence=0.82) is False
+
+
+def test_requires_review_keeps_low_confidence_entity() -> None:
+    assert requires_review("medium", ProposalType.ENTITY.value, confidence=0.75) is True
+
+
+def test_requires_review_keeps_relationships() -> None:
+    assert requires_review("low", ProposalType.RELATIONSHIP.value, confidence=0.9) is True
+
+
 def test_pending_is_default_proposal_status() -> None:
     assert ProposalStatus.PENDING.value == "pending"

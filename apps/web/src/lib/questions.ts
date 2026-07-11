@@ -17,6 +17,8 @@ export type QuestionAnswer = {
     confidence: number;
     citation_ids: string[];
   }>;
+  warnings: string[];
+  conflicts: string[];
   model?: string | null;
 };
 
@@ -30,5 +32,10 @@ export async function askQuestion(
     body: JSON.stringify({ question, mode }),
   });
   if (!response.ok) return null;
-  return response.json();
+  const data = await response.json();
+  return {
+    ...data,
+    warnings: data.warnings ?? [],
+    conflicts: data.conflicts ?? [],
+  };
 }

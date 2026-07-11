@@ -1,4 +1,3 @@
-import asyncio
 from uuid import UUID
 
 from adapters.graph.projector import Neo4jGraphProjector
@@ -6,7 +5,6 @@ from adapters.persistence.canonical_repository import (
     PostgresCanonicalRepository,
     PostgresOutboxRepository,
 )
-from adapters.persistence.session import create_engine, create_session_factory, session_scope
 from application.operations.service import OperationsService
 from application.policy import LocalPolicyService
 from celery import Task
@@ -15,17 +13,16 @@ from observability.logging import get_logger
 
 from worker.celery_app import celery_app
 from worker.config import Settings
+from worker.db import run_task, task_session
 
 logger = get_logger("worker.tasks.maintenance")
 settings = Settings()
-_engine = create_engine(settings.database_url)
-_session_factory = create_session_factory(_engine)
 
 
 async def _rebuild_projection(owner_id: UUID) -> dict[str, int | bool]:
     projector = Neo4jGraphProjector(settings)
     try:
-        async with session_scope(_session_factory) as session:
+        async with task_session() as session:
             operations = OperationsService(
                 PostgresCanonicalRepository(session),
                 PostgresOutboxRepository(session),
@@ -56,7 +53,7 @@ def rebuild_projection(
         task_id=self.request.id,
         owner_id=str(resolved_owner),
     )
-    return asyncio.run(_rebuild_projection(resolved_owner))
+    return run_task(lambda: _rebuild_projection(resolved_owner))
 
 
 @celery_app.task(name="worker.tasks.maintenance.ping", bind=True)

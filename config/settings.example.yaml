@@ -7,6 +7,14 @@
 
 version: "1"
 
+agents:
+  extraction:
+    use_langgraph: true
+  planner:
+    version: graph_v2
+  synthesis:
+    version: graph_v2
+
 llm:
   enabled: true
   base_url: http://localhost:11434/v1

@@ -56,6 +56,10 @@ class ContradictionResponse(BaseModel):
     conflicting_proposal_id: UUID | None
     status: str
     summary: str
+    predicate: str | None = None
+    existing_value: str | None = None
+    conflicting_value: str | None = None
+    subject_entity_id: UUID | None = None
     created_at: datetime
 
 

@@ -13,6 +13,7 @@ class ProposalType(StrEnum):
     DECISION = "decision"
     EVENT = "event"
     ENTITY_RESOLUTION = "entity_resolution"
+    MERGE = "merge"
 
 
 class ProposalStatus(StrEnum):

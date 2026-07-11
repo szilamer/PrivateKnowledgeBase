@@ -2,6 +2,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from domain.sources import DEFAULT_EXCLUDE_GLOBS
+
 
 class SyncConfig(BaseModel):
     on_startup: bool = True
@@ -15,7 +17,7 @@ class LocalFolderSourceConfig(BaseModel):
     enabled: bool = True
     paths: list[str] = Field(min_length=1)
     include_extensions: list[str] = Field(default_factory=lambda: [".md", ".txt", ".pdf"])
-    exclude_globs: list[str] = Field(default_factory=lambda: ["**/node_modules/**", "**/.git/**"])
+    exclude_globs: list[str] = Field(default_factory=lambda: list(DEFAULT_EXCLUDE_GLOBS))
 
 
 class GoogleDriveSourceConfig(BaseModel):

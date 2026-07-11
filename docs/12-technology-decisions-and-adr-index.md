@@ -41,10 +41,11 @@ This document is the authoritative index of technology and architecture decision
 - [ADR-012 Observability and Audit](adr/ADR-012-observability-and-audit.md)
 - [ADR-013 Google Workspace Connectors](adr/ADR-013-google-workspace-connectors.md) — **Proposed**
 
-## 4. Specification supplements (post-MVP)
+## 4. Specification supplements
 
-- [13 — Personal Source Connectors](13-personal-source-connectors-supplement.md)
-- [14 — Source Connection UI](14-source-connection-ui-supplement.md)
+- [13 — Personal Source Connectors](13-personal-source-connectors-supplement.md) — Phase 7
+- [14 — Source Connection UI](14-source-connection-ui-supplement.md) — Phase 7
+- [15 — Agent Implementation Plan](15-agent-implementation-plan.md) — Phase 8
 
 ## 5. Precedence
 
@@ -55,7 +56,7 @@ This document is the authoritative index of technology and architecture decision
 5. Functional specification
 6. MVP scope and product requirements
 7. Project vision and concept
-8. Approved specification supplements (`docs/13-*`, `docs/14-*`)
+8. Approved specification supplements (`docs/13-*`, `docs/14-*`, `docs/15-*`)
 
 ## 6. Change process
 

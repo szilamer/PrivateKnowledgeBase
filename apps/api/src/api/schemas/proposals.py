@@ -51,5 +51,16 @@ class EditApproveRequest(BaseModel):
     rationale: str | None = None
 
 
+class MergeEntitiesRequest(BaseModel):
+    source_entity_id: UUID
+    target_entity_id: UUID
+    rationale: str | None = None
+
+
 class BatchApproveRequest(BaseModel):
     proposal_ids: list[UUID] = Field(min_length=1, max_length=50)
+
+
+class AutoApproveResponse(BaseModel):
+    approved_count: int
+    message: str

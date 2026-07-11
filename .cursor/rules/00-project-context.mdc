@@ -16,9 +16,12 @@ AI-powered personal knowledge operations system. Local-first Docker Compose MVP.
 
 ## Current phase
 
-**Phase 2 — Parsing and retrieval foundation** (Phase 1 complete).
+**Phases 0–6 complete.** **Phase 7** (personal sources + connection UI) and **Phase 8** (agent layer) are active specification tracks.
 
-Next: chunking, embeddings, pgvector search, source preview. Then Phase 3 knowledge proposals.
+- Phase 7: `docs/13-personal-source-connectors-supplement.md`, `docs/14-source-connection-ui-supplement.md`
+- Phase 8: `docs/05-agent-architecture.md`, `docs/15-agent-implementation-plan.md`
+
+Agent implementation rules: `docs/08-ai-development-contract.md` §3.3.
 
 ## Document precedence (highest first)
 

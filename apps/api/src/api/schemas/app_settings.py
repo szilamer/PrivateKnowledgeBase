@@ -19,3 +19,13 @@ class LlmHealthResponse(BaseModel):
     synthesis_model: str
     embedding_provider: str
     message: str | None = None
+
+
+class LlmApiKeyPutRequest(BaseModel):
+    api_key: str
+
+
+class LlmApiKeyStatusResponse(BaseModel):
+    api_key_configured: bool
+    api_key_preview: str | None = None
+    message: str

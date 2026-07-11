@@ -10,6 +10,7 @@ from domain.sync import (
     SourceObject,
     SourceObjectVersion,
     SyncRun,
+    SyncRunStatus,
 )
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -139,6 +140,35 @@ class PostgresSourceRepository:
         next_cursor = rows[limit].id if len(rows) > limit else None
         return sources, next_cursor
 
+    async def delete(self, source_id: UUID, owner_id: UUID) -> bool:
+        existing = await self.get_by_id(source_id, owner_id)
+        if existing is None:
+            return False
+        await self._session.execute(
+            text(
+                """
+                DELETE FROM source_object_versions
+                WHERE source_object_id IN (
+                    SELECT id FROM source_objects WHERE source_id = :source_id
+                )
+                """
+            ),
+            {"source_id": source_id},
+        )
+        await self._session.execute(
+            text("DELETE FROM source_objects WHERE source_id = :source_id"),
+            {"source_id": source_id},
+        )
+        await self._session.execute(
+            text("DELETE FROM sync_runs WHERE source_id = :source_id"),
+            {"source_id": source_id},
+        )
+        await self._session.execute(
+            text("DELETE FROM sources WHERE id = :id AND owner_id = :owner_id"),
+            {"id": source_id, "owner_id": owner_id},
+        )
+        return (await self.get_by_id(source_id, owner_id)) is None
+
 
 class PostgresSyncRunRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -239,6 +269,20 @@ class PostgresSyncRunRepository:
         runs = [_parse_sync_run(row) for row in rows[:limit]]
         next_cursor = rows[limit].id if len(rows) > limit else None
         return runs, next_cursor
+
+    async def list_by_status(self, status: SyncRunStatus, *, limit: int = 100) -> list[SyncRun]:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT * FROM sync_runs
+                WHERE status = :status
+                ORDER BY id
+                LIMIT :limit
+                """
+            ),
+            {"status": status.value, "limit": limit},
+        )
+        return [_parse_sync_run(row) for row in result.fetchall()]
 
 
 class PostgresSourceObjectRepository:

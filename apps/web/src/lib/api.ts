@@ -106,6 +106,50 @@ export async function getSourcesHealth(): Promise<SourcesHealth | null> {
   return response.json();
 }
 
+export type SourceProcessingStats = {
+  source_id: string;
+  extraction_pending: number;
+  extraction_completed: number;
+  extraction_failed: number;
+  extraction_skipped: number;
+  knowledge_pending: number;
+  knowledge_completed: number;
+  knowledge_failed: number;
+  knowledge_skipped: number;
+  content_chunks: number;
+  recent_extraction_errors: { external_id: string; error: string }[];
+};
+
+export async function getSourceProcessingStats(
+  sourceId: string,
+): Promise<SourceProcessingStats | null> {
+  const response = await fetch(`${API_URL}/api/v1/sources/${sourceId}/processing`, {
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export function formatProcessingSummary(stats: SourceProcessingStats): string {
+  const done = stats.extraction_completed;
+  const total =
+    stats.extraction_pending +
+    stats.extraction_completed +
+    stats.extraction_failed +
+    stats.extraction_skipped;
+  const knowledge = stats.knowledge_completed;
+  const chunks = stats.content_chunks;
+  if (total === 0) return "Még nincs feldolgozandó fájl.";
+  return `Feldolgozás: ${done}/${total} fájl · Tudás: ${knowledge} · Chunkok: ${chunks}`;
+}
+
+export async function deleteSource(sourceId: string): Promise<boolean> {
+  const response = await fetch(`${API_URL}/api/v1/sources/${sourceId}`, {
+    method: "DELETE",
+  });
+  return response.status === 204;
+}
+
 export async function getSyncRun(syncRunId: string): Promise<SyncRun | null> {
   const response = await fetch(`${API_URL}/api/v1/sync-runs/${syncRunId}`, {
     cache: "no-store",
@@ -190,4 +234,41 @@ export function syncStatusLabel(status: string): string {
     default:
       return status;
   }
+}
+
+/** Prefer a finished run when the newest run is a stuck pending job (0 progress). */
+export function pickDisplaySyncRun(runs: SyncRun[]): SyncRun | undefined {
+  if (runs.length === 0) return undefined;
+  const latest = runs[0];
+  const stuckPending =
+    (latest.status === "pending" || latest.status === "running") &&
+    !latest.started_at &&
+    latest.objects_processed === 0 &&
+    latest.objects_discovered === 0;
+  if (stuckPending) {
+    const lastFinished = runs.find(
+      (run) => run.status === "completed" || run.status === "partial" || run.status === "failed",
+    );
+    if (lastFinished) return lastFinished;
+  }
+  return latest;
+}
+
+export function hasStuckPendingSync(runs: SyncRun[]): boolean {
+  if (runs.length === 0) return false;
+  const latest = runs[0];
+  return (
+    latest.status === "pending" &&
+    !latest.started_at &&
+    latest.objects_processed === 0 &&
+    runs.some((run) => run.status === "completed" || run.status === "partial")
+  );
+}
+
+/** True only while a sync is actively executing — not for queued/stuck jobs. */
+export function isSyncInFlight(runs: SyncRun[]): boolean {
+  const newest = runs[0];
+  if (!newest) return false;
+  if (newest.status === "running") return true;
+  return newest.status === "pending" && Boolean(newest.started_at);
 }

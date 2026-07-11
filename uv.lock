@@ -1238,11 +1238,15 @@ name = "pkb-application"
 version = "0.1.0"
 source = { editable = "packages/application" }
 dependencies = [
+    { name = "pkb-agents" },
     { name = "pkb-domain" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pkb-domain", editable = "packages/domain" }]
+requires-dist = [
+    { name = "pkb-agents", editable = "packages/agents" },
+    { name = "pkb-domain", editable = "packages/domain" },
+]
 
 [[package]]
 name = "pkb-domain"

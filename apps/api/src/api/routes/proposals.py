@@ -8,10 +8,12 @@ from starlette.responses import JSONResponse
 from api.dependencies import RequestServices, domain_error_response, get_services
 from api.schemas.proposals import (
     ApproveRequest,
+    AutoApproveResponse,
     BatchApproveRequest,
     DeferRequest,
     EditApproveRequest,
     EvidenceResponse,
+    MergeEntitiesRequest,
     ProposalListResponse,
     ProposalResponse,
     RejectRequest,
@@ -175,6 +177,54 @@ async def edit_and_approve_proposal(
             correlation_id=services.correlation_id,
         )
         return _to_response(proposal)
+    except DomainError as exc:
+        return JSONResponse(
+            status_code=400,
+            content=domain_error_response(exc, services.correlation_id),
+        )
+
+
+@router.post("/proposals/{proposal_id}/merge", response_model=ProposalResponse)
+async def merge_entity_proposal(
+    proposal_id: UUID,
+    body: MergeEntitiesRequest,
+    services: RequestServices = Depends(get_services),
+) -> ProposalResponse | JSONResponse:
+    try:
+        proposal = await services.proposals.merge_entities(
+            services.owner,
+            proposal_id,
+            source_entity_id=body.source_entity_id,
+            target_entity_id=body.target_entity_id,
+            rationale=body.rationale,
+            correlation_id=services.correlation_id,
+        )
+        return _to_response(proposal)
+    except DomainError as exc:
+        return JSONResponse(
+            status_code=400,
+            content=domain_error_response(exc, services.correlation_id),
+        )
+
+
+@router.post("/proposals/auto-approve", response_model=AutoApproveResponse)
+async def auto_approve_proposals(
+    services: RequestServices = Depends(get_services),
+) -> AutoApproveResponse | JSONResponse:
+    try:
+        approved = await services.proposals.auto_approve_confident(
+            services.owner,
+            correlation_id=services.correlation_id,
+        )
+        count = len(approved)
+        return AutoApproveResponse(
+            approved_count=count,
+            message=(
+                f"{count} javaslat automatikusan jóváhagyva (80%+ bizonyosság)."
+                if count
+                else "Nincs automatikusan jóváhagyható javaslat."
+            ),
+        )
     except DomainError as exc:
         return JSONResponse(
             status_code=400,

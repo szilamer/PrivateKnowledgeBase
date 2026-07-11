@@ -1,6 +1,6 @@
 # Technical Specification
 
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** Approved for MVP implementation subject to accepted ADRs
 
 ## 1. Normative technology stack
@@ -78,6 +78,40 @@ Tasks are idempotent. Transient errors use bounded exponential retry; permanent 
 ## 7. Agent integration
 
 LangGraph state schemas are versioned Pydantic models. Tool calls invoke application services, not database clients. All LLM outputs are schema validated. Model, provider, prompt version, schema version, token usage, and latency are recorded.
+
+**Normative roles:** `docs/05-agent-architecture.md`  
+**Phased delivery and as-built status:** `docs/15-agent-implementation-plan.md`
+
+### 7.1 Agent inventory (as-built)
+
+| Role | Package / service | LangGraph | Status |
+|---|---|---|---|
+| Extraction | `packages/agents/extraction/`, `KnowledgeExtractionService` | Yes | Partial |
+| Entity Resolution | `agents/entity_resolution/graph.py` + `domain/entity_resolution.py` | Yes | Implemented |
+| Retrieval Planner | `agents/retrieval/graph.py` + `HybridRetrievalPlanner` | Yes | Implemented |
+| Answer Synthesis | `agents/synthesis/graph.py` + `AnswerSynthesisService` | Yes | Implemented |
+| Project Report | `application/projects/` | No | Stub |
+| Maintenance | `worker/recovery.py`, `application/operations/` | No | Partial |
+| Contradiction | `agents/contradiction/graph.py` + `domain/contradiction_detection.py` | Yes | Implemented |
+| Triage, Ontology Curator | — | — | Not started |
+
+### 7.2 Placement rules
+
+- New graphs: `packages/agents/<name>/graph.py` + `state.py`
+- Prompts: `packages/prompts/<name>_vN.py`
+- Runners: `packages/application/` or thin `apps/worker/` adapters
+- Feature flags: `config/settings.yaml` under `agents.*` (see doc 15 §9)
+
+### 7.3 Queues
+
+| Queue | Agent / pipeline step |
+|---|---|
+| `ingestion` | Source sync |
+| `extraction` | Document processing + knowledge extraction tasks |
+| `graph_projection` | Neo4j projector |
+| `maintenance` | Rebuild, maintenance agent (planned) |
+
+The `embedding` queue is reserved; embeddings currently run inline during extraction.
 
 ## 8. Configuration and secrets
 

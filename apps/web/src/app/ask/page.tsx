@@ -18,15 +18,18 @@ export default function AskPage() {
   return (
     <main className="page">
       <section className="hero">
-        <p className="eyebrow">Phase 5 — Question answering</p>
-        <h1>Ask</h1>
-        <p className="lead">Hybrid retrieval with source-backed answers and citations.</p>
+        <p className="eyebrow">Kérdezés</p>
+        <h1>Kérdezz a tudásbázisról</h1>
+        <p className="lead">
+          Hibrid keresés forrás-alapú válasszal és hivatkozásokkal. A rendszer jelzi, ha kevés a
+          bizonyíték vagy ellentmondás van.
+        </p>
       </section>
 
       <section className="panel">
         <form className="form" onSubmit={handleSubmit}>
           <label>
-            Question
+            Kérdés
             <textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
@@ -35,32 +38,54 @@ export default function AskPage() {
             />
           </label>
           <label>
-            Retrieval mode
+            Keresési mód
             <select value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
-              <option value="hybrid">Hybrid</option>
-              <option value="keyword">Keyword</option>
-              <option value="semantic">Semantic</option>
+              <option value="hybrid">Hibrid</option>
+              <option value="keyword">Kulcsszó</option>
+              <option value="semantic">Szemantikus</option>
             </select>
           </label>
-          <button type="submit">Ask</button>
+          <button type="submit">Kérdezés</button>
         </form>
       </section>
 
       {answer && (
         <section className="panel">
-          <h2>Answer</h2>
+          <h2>Válasz</h2>
           <p className="hit-meta">
-            confidence {answer.confidence.toFixed(2)}
+            bizonyosság {answer.confidence.toFixed(2)}
             {answer.model ? ` · ${answer.model}` : ""}
-            {answer.insufficient_evidence ? " · insufficient evidence" : ""}
+            {answer.insufficient_evidence ? " · kevés bizonyíték" : ""}
           </p>
           <p>{answer.answer}</p>
 
-          <h3>Citations ({answer.citations.length})</h3>
+          {answer.warnings.length > 0 && (
+            <>
+              <h3>Figyelmeztetések</h3>
+              <ul className="guide-list">
+                {answer.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {answer.conflicts.length > 0 && (
+            <>
+              <h3>Ellentmondások a bizonyítékban</h3>
+              <ul className="guide-list">
+                {answer.conflicts.map((conflict) => (
+                  <li key={conflict}>{conflict}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <h3>Hivatkozások ({answer.citations.length})</h3>
           {answer.citations.map((citation) => (
             <article key={citation.citation_id} className="hit">
               <p className="hit-meta">
-                {citation.signal} · score {citation.score.toFixed(3)}
+                {citation.signal} · pontszám {citation.score.toFixed(3)}
                 {citation.external_id ? ` · ${citation.external_id}` : ""}
               </p>
               <p>{citation.excerpt}</p>

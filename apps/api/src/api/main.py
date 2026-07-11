@@ -45,7 +45,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         host_root=settings.pkb_host_root,
     )
     app.state.resolved_llm_settings = AppSettingsService(
-        Path(settings.settings_config_path), settings
+        Path(settings.settings_config_path),
+        settings,
+        Path(settings.llm_secrets_path),
     ).get_resolved()
     oauth_states: set[str] = set()
     app.state.google_oauth_states = oauth_states

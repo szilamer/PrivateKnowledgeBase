@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Protocol
 
 from adapters.settings.config_loader import load_app_settings
+from adapters.settings.secrets_store import load_llm_api_key
 from domain.app_settings import AppSettingsFile
 
 
@@ -33,10 +34,12 @@ class ResolvedLlmSettings:
 def resolve_llm_settings(
     env: EnvLlmDefaults,
     config_path: Path,
+    secrets_path: Path | None = None,
 ) -> ResolvedLlmSettings:
     file_config = load_app_settings(config_path) or AppSettingsFile()
     llm = file_config.llm
-    api_key = os.environ.get(llm.api_key_env, "") or env.llm_api_key
+    file_key = load_llm_api_key(secrets_path) if secrets_path is not None else ""
+    api_key = file_key or os.environ.get(llm.api_key_env, "") or env.llm_api_key
     use_hash = _resolve_embedding_mode(llm.embedding.provider, api_key)
     return ResolvedLlmSettings(
         llm_base_url=llm.base_url or env.llm_base_url,
@@ -61,11 +64,14 @@ def _resolve_embedding_mode(provider: str, api_key: str) -> bool:
 
 
 def resolved_to_public(resolved: ResolvedLlmSettings) -> dict[str, object]:
+    from adapters.settings.secrets_store import api_key_preview
+
     return {
         "enabled": resolved.llm_enabled,
         "base_url": resolved.llm_base_url,
         "api_key_env": resolved.api_key_env,
         "api_key_configured": resolved.api_key_configured,
+        "api_key_preview": api_key_preview(resolved.llm_api_key),
         "extraction_model": resolved.extraction_model,
         "synthesis_model": resolved.synthesis_model,
         "embedding": {

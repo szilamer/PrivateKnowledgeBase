@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AppNav } from "@/components/AppNav";
 
 export const metadata: Metadata = {
   title: "Private Knowledge Base",
@@ -12,8 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="hu">
+      <body>
+        <AppNav />
+        {children}
+      </body>
     </html>
   );
 }

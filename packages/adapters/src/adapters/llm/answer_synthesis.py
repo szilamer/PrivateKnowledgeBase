@@ -74,7 +74,8 @@ class OpenAICompatibleAnswerSynthesizer:
             "Answer the question using ONLY the evidence below. "
             "Return JSON with keys: answer (string), confidence (0-1), "
             "claims (array of {text, confidence, citation_ids}), "
-            "insufficient_evidence (boolean). "
+            "insufficient_evidence (boolean), warnings (array of strings), "
+            "conflicts (array of strings). "
             "Every material claim MUST reference citation_ids from the evidence."
         )
         headers = {"Content-Type": "application/json"}
@@ -121,6 +122,8 @@ class OpenAICompatibleAnswerSynthesizer:
             insufficient_evidence=bool(parsed.get("insufficient_evidence", False)),
             citations=citations,
             claims=claims,
+            warnings=[str(item) for item in parsed.get("warnings", []) if item],
+            conflicts=[str(item) for item in parsed.get("conflicts", []) if item],
             model=self.model,
             created_at=datetime.now(UTC),
         )

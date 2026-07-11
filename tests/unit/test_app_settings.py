@@ -35,6 +35,25 @@ def test_resolve_llm_settings_from_file(tmp_path: Path) -> None:
     assert resolved.embedding_dimension == 768
 
 
+def test_resolve_llm_settings_prefers_secrets_file(tmp_path: Path) -> None:
+    config_path = tmp_path / "settings.yaml"
+    secrets_path = tmp_path / "llm-secrets.json"
+    secrets_path.write_text('{"api_key": "sk-from-ui"}', encoding="utf-8")
+    save_app_settings(config_path, AppSettingsFile())
+
+    class Env:
+        llm_base_url = "http://localhost:8000/v1"
+        llm_api_key = ""
+        embedding_model = "text-embedding-3-small"
+        embedding_dimension = 1536
+        extraction_model = "gpt-4o-mini"
+        synthesis_model = "gpt-4o-mini"
+
+    resolved = resolve_llm_settings(Env(), config_path, secrets_path)
+    assert resolved.llm_api_key == "sk-from-ui"
+    assert resolved.api_key_configured is True
+
+
 def test_app_settings_file_defaults() -> None:
     config = AppSettingsFile()
     assert config.llm.enabled is True

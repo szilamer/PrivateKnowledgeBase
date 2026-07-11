@@ -34,6 +34,9 @@ secrets/
 config/sources.yaml
 config/settings.yaml
 
+# LLM API key saved from the settings UI (never commit)
+config/llm-secrets.json
+
 # IDE
 .idea/
 .vscode/

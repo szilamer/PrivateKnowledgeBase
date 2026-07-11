@@ -1,6 +1,6 @@
 # AI Development Contract
 
-**Version:** 0.3  
+**Version:** 0.4  
 **Status:** Approved
 
 ## 1. Purpose
@@ -23,6 +23,7 @@ This contract defines how a code-generating or coding agent may modify the repos
 |---|---|
 | `docs/13-personal-source-connectors-supplement.md` | Declarative sources, host path bridging, Google connectors |
 | `docs/14-source-connection-ui-supplement.md` | Source connection UI under `/sources` |
+| `docs/15-agent-implementation-plan.md` | Agent layer phased delivery, as-built status, acceptance criteria |
 
 Supplements extend the documents above; they do not override accepted ADRs or the technical specification. When a supplement conflicts with a higher-precedence document, the higher-precedence document applies and the agent MUST report the conflict.
 
@@ -72,9 +73,28 @@ When implementing user-facing settings, the agent MUST satisfy:
 | Settings UI at `/settings` with Hungarian plain-language copy | supplement 14 |
 | Worker and API resolve effective LLM config from file + `.env` on each request/task | Runtime consistency |
 
-API keys MUST remain in `.env` (`LLM_API_KEY` or `api_key_env`); never in `settings.yaml`.
+API keys are set through the settings UI and stored in `config/llm-secrets.json` (gitignored). `.env` `LLM_API_KEY` remains an optional operator fallback.
 
 Google connectors MAY be gated by `PKB_GOOGLE_CONNECTORS_ENABLED=false` when credentials are absent; local-folder bootstrap MUST work without Google.
+
+### 3.3 Agent layer (mandatory when implementing doc 15 phases)
+
+When implementing agent roles defined in `docs/05-agent-architecture.md`, the agent MUST follow `docs/15-agent-implementation-plan.md` and ADR-006.
+
+| Requirement | Source |
+|---|---|
+| LangGraph flows live in `packages/agents/<name>/` with versioned state schema | ADR-006, doc 15 §4 |
+| Graph nodes invoke application services / ports only — never DB or Neo4j drivers | ADR-006, doc 05 §6, doc 15 §2.2 |
+| LLM outputs schema-validated before any `KnowledgeProposal` or ontology proposal persistence | doc 07 §7, doc 15 §8 |
+| Record model, provider, prompt version, schema version, latency, correlation ID per run | doc 07 §7, ADR-012 |
+| Agents create proposals only; canonical writes go through `ProposalService` + materialization | doc 05 §6, doc 15 §2 |
+| Deterministic pipelines (parsers, chunking, projection) remain non-agent services | ADR-006 |
+| Phase acceptance criteria and tests from doc 15 §5 completed before marking status **Implemented** in doc 05 §8 | doc 15 §11 |
+| Update doc 05 §8 status matrix and doc 11 Phase 8 checklist when a phase ships | doc 15 §10 |
+
+Contract tests MUST mock LLM adapters. CI MUST NOT require live API keys for agent tests.
+
+Promoting a deterministic service (e.g. `HybridRetrievalPlanner`) to LangGraph requires a feature flag in `config/settings.yaml` until the graph path reaches parity (doc 15 §9).
 
 ## 4. Prohibited behavior
 

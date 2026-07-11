@@ -5,6 +5,7 @@ from domain.approval import ApprovalDecision
 from domain.audit import AuditEvent  # noqa: F401 — used in AuditWriter Protocol
 from domain.entities import EntityIndexEntry, EntityMatch
 from domain.extraction import ExtractionResult, ExtractionRunStatus
+from domain.extraction_outcome import ExtractionLLMResult
 from domain.proposals import KnowledgeProposal, ProposalFilter
 
 
@@ -20,7 +21,7 @@ class LLMProvider(Protocol):
     model: str
     provider: str
 
-    async def extract_knowledge(self, text: str, schema_version: str) -> ExtractionResult: ...
+    async def extract_knowledge(self, text: str, schema_version: str) -> ExtractionLLMResult: ...
 
 
 class ProposalRepository(Protocol):
@@ -89,6 +90,15 @@ class EntityIndexRepository(Protocol):
         self, entry: EntityIndexEntry, *, source_proposal_id: UUID
     ) -> EntityIndexEntry: ...
 
+    async def append_alias(
+        self,
+        owner_id: UUID,
+        entity_id: UUID,
+        alias: str,
+        *,
+        source_proposal_id: UUID,
+    ) -> None: ...
+
 
 class ApprovalRepository(Protocol):
     async def record_decision(self, decision: ApprovalDecision) -> ApprovalDecision: ...
@@ -96,6 +106,8 @@ class ApprovalRepository(Protocol):
 
 class KnowledgeVersionRepository(Protocol):
     async def get_versions_pending_knowledge(self, *, limit: int) -> list[dict[str, object]]: ...
+
+    async def count_pending_knowledge(self) -> int: ...
 
     async def update_knowledge_status(self, version_id: UUID, status: str) -> None: ...
 

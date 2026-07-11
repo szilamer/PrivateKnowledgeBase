@@ -86,6 +86,7 @@ See [Technology Decisions and ADR Index](docs/12-technology-decisions-and-adr-in
 12. [Technology Decisions and ADR Index](docs/12-technology-decisions-and-adr-index.md)
 13. [Personal Source Connectors Supplement](docs/13-personal-source-connectors-supplement.md) (Phase 7 draft)
 14. [Source Connection UI Supplement](docs/14-source-connection-ui-supplement.md) (Phase 7 draft)
+15. [Agent Implementation Plan](docs/15-agent-implementation-plan.md) (Phase 8 draft)
 
 ## Implementation status
 
@@ -98,6 +99,8 @@ See [Technology Decisions and ADR Index](docs/12-technology-decisions-and-adr-in
 | Phase 4 — Canonical knowledge and graph | Complete |
 | Phase 5 — Question answering and project overview | Complete |
 | Phase 6 — Hardening | Complete |
+| Phase 7 — Personal sources and connection UI | In progress |
+| Phase 8 — Agent layer completion | Planned — see [doc 15](docs/15-agent-implementation-plan.md) |
 
 Operator procedures: [Operator Guide](docs/operator-guide.md). Release gate: [Release Checklist](docs/release-checklist.md).
 

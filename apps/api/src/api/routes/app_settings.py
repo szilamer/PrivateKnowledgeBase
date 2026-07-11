@@ -4,12 +4,14 @@ import httpx
 from application.settings.service import AppSettingsService
 from domain.errors import DomainError
 from fastapi import APIRouter, Depends, Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 from api.dependencies import RequestServices, domain_error_response, get_services
 from api.schemas.app_settings import (
     AppSettingsPutRequest,
     AppSettingsResponse,
+    LlmApiKeyPutRequest,
+    LlmApiKeyStatusResponse,
     LlmHealthResponse,
 )
 
@@ -18,7 +20,11 @@ router = APIRouter(tags=["settings"])
 
 def _settings_service(request: Request) -> AppSettingsService:
     settings = request.app.state.settings
-    return AppSettingsService(Path(settings.settings_config_path), settings)
+    return AppSettingsService(
+        Path(settings.settings_config_path),
+        settings,
+        Path(settings.llm_secrets_path),
+    )
 
 
 @router.get("/settings", response_model=AppSettingsResponse)
@@ -49,6 +55,48 @@ async def put_settings(
         config=service.get_config_redacted(),
         config_path=str(service.config_path),
     )
+
+
+@router.put("/settings/llm/api-key", response_model=LlmApiKeyStatusResponse)
+async def put_llm_api_key(
+    body: LlmApiKeyPutRequest,
+    request: Request,
+    services: RequestServices = Depends(get_services),
+) -> LlmApiKeyStatusResponse | JSONResponse:
+    service = _settings_service(request)
+    try:
+        service.set_api_key(body.api_key)
+    except DomainError as exc:
+        return JSONResponse(
+            status_code=400,
+            content=domain_error_response(exc, services.correlation_id),
+        )
+    request.app.state.resolved_llm_settings = service.get_resolved()
+    resolved = service.get_resolved()
+    from adapters.settings.secrets_store import api_key_preview
+
+    return LlmApiKeyStatusResponse(
+        api_key_configured=True,
+        api_key_preview=api_key_preview(resolved.llm_api_key),
+        message="API kulcs elmentve. Azonnal érvényes, újraindítás nem szükséges.",
+    )
+
+
+@router.delete("/settings/llm/api-key", status_code=204, response_model=None)
+async def delete_llm_api_key(
+    request: Request,
+    services: RequestServices = Depends(get_services),
+) -> Response | JSONResponse:
+    service = _settings_service(request)
+    try:
+        service.clear_api_key()
+    except DomainError as exc:
+        return JSONResponse(
+            status_code=400,
+            content=domain_error_response(exc, services.correlation_id),
+        )
+    request.app.state.resolved_llm_settings = service.get_resolved()
+    return Response(status_code=204)
 
 
 @router.get("/settings/llm/health", response_model=LlmHealthResponse)

@@ -7,6 +7,7 @@ from application.ports.parsers import DocumentParser
 from domain.chunking import chunk_markdown, chunk_text, estimate_token_count
 from domain.content import ContentChunk, ParserType
 from domain.content_hash import compute_content_hash
+from domain.parsers import ParserError
 
 
 class DocumentProcessingService:
@@ -36,8 +37,12 @@ class DocumentProcessingService:
             try:
                 await self.process_version(version_id)
                 processed += 1
-            except Exception:  # noqa: BLE001 — FR-ING-004 partial failure
-                await self._versions.update_extraction_status(version_id, "failed")
+            except ParserError as exc:
+                await self._versions.update_extraction_status(version_id, "failed", error=str(exc))
+            except Exception as exc:  # noqa: BLE001 — FR-ING-004 partial failure
+                await self._versions.update_extraction_status(
+                    version_id, "failed", error=str(exc)[:500]
+                )
         return processed
 
     async def process_version(self, version_id: UUID) -> int:
@@ -47,11 +52,24 @@ class DocumentProcessingService:
             raise ValueError(msg)
 
         raw = await self._loader.load(version_id, record)
-        parsed = self._parser.parse(
-            raw,
-            str(record.get("mime_type")) if record.get("mime_type") else None,
-            str(record["external_id"]),
-        )
+        try:
+            parsed = self._parser.parse(
+                raw,
+                str(record.get("mime_type")) if record.get("mime_type") else None,
+                str(record["external_id"]),
+            )
+        except ParserError:
+            raise
+        except Exception as exc:
+            raise ParserError(
+                f"Parse failed for {record['external_id']}: {exc}",
+            ) from exc
+
+        if not parsed.text.strip():
+            await self._versions.update_extraction_status(
+                version_id, "skipped", error="empty document after parsing"
+            )
+            return 0
 
         if parsed.parser_type == ParserType.MARKDOWN:
             segments = chunk_markdown(parsed.text)

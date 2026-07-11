@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     session_secret: str = "change-me-to-a-random-32-byte-string"
     sources_config_path: str = "config/sources.yaml"
     settings_config_path: str = "config/settings.yaml"
+    llm_secrets_path: str = "config/llm-secrets.json"
     host_path_manifest_path: str = "config/host-path-manifest.json"
     pkb_host_root: str = "/host"
     pkb_source_dirs: str = ""
