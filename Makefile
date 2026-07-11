@@ -41,7 +41,9 @@ logs:
 	$(COMPOSE) logs -f
 
 migrate:
-	$(COMPOSE) exec api alembic upgrade head
+	@set -a && [ -f .env ] && . ./.env && set +a; \
+	PG_HOST=$$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo 127.0.0.1); \
+	cd apps/api && DATABASE_URL="postgresql+asyncpg://$${POSTGRES_USER:-pkb}:$${POSTGRES_PASSWORD:-change-me-in-production}@$$PG_HOST:5432/$${POSTGRES_DB:-pkb}" uv run alembic upgrade head
 
 test:
 	uv run pytest tests/ -v
