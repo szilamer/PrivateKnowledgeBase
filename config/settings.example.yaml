@@ -10,6 +10,8 @@ version: "1"
 agents:
   extraction:
     use_langgraph: true
+  triage:
+    enabled: true
   planner:
     version: graph_v2
   synthesis:

@@ -39,3 +39,13 @@ class VersionContentRepository(Protocol):
     ) -> None: ...
 
     async def get_version_with_source(self, version_id: UUID) -> dict[str, object] | None: ...
+
+    async def get_versions_needing_triage(self, *, limit: int = 50) -> list[dict[str, object]]: ...
+
+    async def save_triage(
+        self,
+        version_id: UUID,
+        *,
+        status: str,
+        metadata: dict[str, object],
+    ) -> None: ...

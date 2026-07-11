@@ -30,8 +30,13 @@ class SynthesisAgentSettings(BaseModel):
     version: Literal["deterministic", "graph_v2"] = "graph_v2"
 
 
+class TriageAgentSettings(BaseModel):
+    enabled: bool = True
+
+
 class AgentsSettingsConfig(BaseModel):
     extraction: ExtractionAgentSettings = Field(default_factory=ExtractionAgentSettings)
+    triage: TriageAgentSettings = Field(default_factory=TriageAgentSettings)
     planner: PlannerAgentSettings = Field(default_factory=PlannerAgentSettings)
     synthesis: SynthesisAgentSettings = Field(default_factory=SynthesisAgentSettings)
 

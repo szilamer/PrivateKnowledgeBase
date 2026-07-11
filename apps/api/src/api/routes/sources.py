@@ -11,6 +11,7 @@ from api.schemas.local_browse import LocalBrowseResponse, LocalFolderEntryRespon
 from api.schemas.processing_stats import (
     ProcessingErrorSampleResponse,
     SourceProcessingStatsResponse,
+    TriageSampleResponse,
 )
 from api.schemas.sources import (
     GitHubSourceRequest,
@@ -110,10 +111,22 @@ async def get_source_processing_stats(
         knowledge_completed=stats.knowledge_completed,
         knowledge_failed=stats.knowledge_failed,
         knowledge_skipped=stats.knowledge_skipped,
+        triage_pending=stats.triage_pending,
+        triage_completed=stats.triage_completed,
         content_chunks=stats.content_chunks,
         recent_extraction_errors=[
             ProcessingErrorSampleResponse(external_id=item.external_id, error=item.error)
             for item in stats.recent_extraction_errors
+        ],
+        recent_triage_samples=[
+            TriageSampleResponse(
+                external_id=item.external_id,
+                sensitivity=item.sensitivity,
+                relevance=item.relevance,
+                review_risk=item.review_risk,
+                extractor_hint=item.extractor_hint,
+            )
+            for item in stats.recent_triage_samples
         ],
     )
 

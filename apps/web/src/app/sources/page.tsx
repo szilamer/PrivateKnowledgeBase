@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   deleteSource,
   formatProcessingSummary,
+  formatTriageSample,
   getSourceProcessingStats,
   getGoogleAuthUrl,
   listGoogleAccounts,
@@ -205,6 +206,15 @@ export default function SourcesPage() {
                   )}
                   {processing && (
                     <p className="run muted">{formatProcessingSummary(processing)}</p>
+                  )}
+                  {processing && processing.recent_triage_samples.length > 0 && (
+                    <p className="muted sync-hint">
+                      Besorolás:{" "}
+                      {processing.recent_triage_samples
+                        .slice(0, 2)
+                        .map((sample) => formatTriageSample(sample))
+                        .join(" · ")}
+                    </p>
                   )}
                   {processing && processing.extraction_failed > 0 && (
                     <p className="muted sync-hint">

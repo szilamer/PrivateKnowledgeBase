@@ -186,6 +186,7 @@ class PostgresVersionContentRepository:
                 JOIN sources s ON s.id = so.source_id
                 WHERE sov.extraction_status = 'pending'
                 ORDER BY
+                  COALESCE((sov.triage_metadata->>'relevance')::float, 0.5) DESC,
                   CASE
                     WHEN so.external_id ILIKE '%.md' OR so.external_id ILIKE '%.txt' THEN 0
                     WHEN so.external_id ILIKE '%.pdf' THEN 2
@@ -198,6 +199,48 @@ class PostgresVersionContentRepository:
             {"limit": limit},
         )
         return [dict(row._mapping) for row in result.fetchall()]
+
+    async def get_versions_needing_triage(self, *, limit: int = 50) -> list[dict[str, object]]:
+        result = await self._session.execute(
+            text(
+                """
+                SELECT sov.id AS version_id, sov.mime_type,
+                       so.external_id, so.source_id, s.owner_id, s.configuration
+                FROM source_object_versions sov
+                JOIN source_objects so ON so.id = sov.source_object_id
+                JOIN sources s ON s.id = so.source_id
+                WHERE sov.extraction_status = 'pending'
+                  AND sov.triage_status = 'pending'
+                ORDER BY sov.observed_at
+                LIMIT :limit
+                """
+            ),
+            {"limit": limit},
+        )
+        return [dict(row._mapping) for row in result.fetchall()]
+
+    async def save_triage(
+        self,
+        version_id: UUID,
+        *,
+        status: str,
+        metadata: dict[str, object],
+    ) -> None:
+        await self._session.execute(
+            text(
+                """
+                UPDATE source_object_versions
+                SET triage_status = :status,
+                    triage_metadata = CAST(:metadata AS jsonb)
+                WHERE id = :id
+                """
+            ),
+            {
+                "id": version_id,
+                "status": status,
+                "metadata": json.dumps(metadata),
+            },
+        )
 
     async def count_pending_extractions(self) -> int:
         result = await self._session.execute(
@@ -296,6 +339,23 @@ class PostgresSourceProcessingStatsRepository:
             for row in knowledge_result.fetchall()
         }
 
+        triage_result = await self._session.execute(
+            text(
+                """
+                SELECT sov.triage_status AS status, COUNT(*) AS count
+                FROM source_object_versions sov
+                JOIN source_objects so ON so.id = sov.source_object_id
+                WHERE so.source_id = :source_id
+                GROUP BY sov.triage_status
+                """
+            ),
+            {"source_id": source_id},
+        )
+        triage = {
+            str(dict(row._mapping)["status"]): int(dict(row._mapping)["count"])
+            for row in triage_result.fetchall()
+        }
+
         chunk_result = await self._session.execute(
             text(
                 """
@@ -332,10 +392,48 @@ class PostgresSourceProcessingStatsRepository:
             for row in errors_result.fetchall()
         ]
 
+        triage_samples_result = await self._session.execute(
+            text(
+                """
+                SELECT so.external_id, sov.triage_metadata
+                FROM source_object_versions sov
+                JOIN source_objects so ON so.id = sov.source_object_id
+                WHERE so.source_id = :source_id
+                  AND sov.triage_status = 'completed'
+                  AND sov.triage_metadata != '{}'::jsonb
+                ORDER BY sov.observed_at DESC
+                LIMIT 5
+                """
+            ),
+            {"source_id": source_id},
+        )
+        recent_triage_samples: list[dict[str, object]] = []
+        for row in triage_samples_result.fetchall():
+            mapping = dict(row._mapping)
+            metadata = mapping.get("triage_metadata") or {}
+            if isinstance(metadata, str):
+                try:
+                    metadata = json.loads(metadata)
+                except json.JSONDecodeError:
+                    metadata = {}
+            if not isinstance(metadata, dict):
+                metadata = {}
+            recent_triage_samples.append(
+                {
+                    "external_id": str(mapping["external_id"]),
+                    "sensitivity": str(metadata.get("sensitivity", "low")),
+                    "relevance": float(metadata.get("relevance", 0.5)),
+                    "review_risk": str(metadata.get("review_risk", "medium")),
+                    "extractor_hint": str(metadata.get("extractor_hint", "structured")),
+                }
+            )
+
         return {
             "source_id": source_id,
             "extraction": extraction,
             "knowledge": knowledge,
+            "triage": triage,
             "content_chunks": chunks,
             "recent_extraction_errors": recent_errors,
+            "recent_triage_samples": recent_triage_samples,
         }

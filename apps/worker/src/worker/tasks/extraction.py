@@ -1,3 +1,4 @@
+from pathlib import Path
 from uuid import UUID
 
 from adapters.embeddings.factory import build_embedding_provider
@@ -6,9 +7,11 @@ from adapters.persistence.chunk_repository import (
     PostgresChunkRepository,
     PostgresVersionContentRepository,
 )
+from adapters.settings.config_loader import load_app_settings
 from adapters.settings.runtime import load_resolved_llm_settings
 from application.content.processing import DocumentProcessingService
 from application.ports.content import EmbeddingProvider
+from application.sources.triage_service import VersionTriageService
 from celery import Task
 from observability.logging import get_logger
 
@@ -41,13 +44,27 @@ def _build_processor(session: object) -> DocumentProcessingService:
     )
 
 
+async def _run_triage_if_enabled(session: object) -> int:
+    app_settings = load_app_settings(Path(settings.settings_config_path))
+    if app_settings is None or not app_settings.agents.triage.enabled:
+        return 0
+    triage = VersionTriageService(PostgresVersionContentRepository(session))  # type: ignore[arg-type]
+    return await triage.process_pending(batch_size=BATCH_SIZE)
+
+
 async def _process_pending() -> dict[str, int]:
     async with task_session() as session:
+        triaged = await _run_triage_if_enabled(session)
         processor = _build_processor(session)
         processed = await processor.process_pending(batch_size=BATCH_SIZE)
         remaining = await PostgresVersionContentRepository(session).count_pending_extractions()
+        triage_remaining = 0
+        if triaged > 0:
+            triage_remaining = len(
+                await PostgresVersionContentRepository(session).get_versions_needing_triage(limit=1)
+            )
 
-    if remaining > 0:
+    if remaining > 0 or triage_remaining > 0:
         enqueue_extraction_process_pending()
     if processed > 0 or remaining == 0:
         enqueue_knowledge_extract_pending()

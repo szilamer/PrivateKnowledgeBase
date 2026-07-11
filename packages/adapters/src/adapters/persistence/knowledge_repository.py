@@ -474,13 +474,15 @@ class PostgresKnowledgeVersionRepository:
             text(
                 """
                 SELECT sov.id AS version_id, so.source_id, s.owner_id,
-                       s.default_project_id, so.external_id
+                       s.default_project_id, so.external_id, sov.triage_metadata
                 FROM source_object_versions sov
                 JOIN source_objects so ON so.id = sov.source_object_id
                 JOIN sources s ON s.id = so.source_id
                 WHERE sov.extraction_status = 'completed'
                   AND sov.knowledge_status = 'pending'
-                ORDER BY sov.observed_at
+                ORDER BY
+                  COALESCE((sov.triage_metadata->>'relevance')::float, 0.5) DESC,
+                  sov.observed_at
                 LIMIT :limit
                 """
             ),
@@ -515,7 +517,7 @@ class PostgresKnowledgeVersionRepository:
             text(
                 """
                 SELECT sov.id AS version_id, so.source_id, s.owner_id,
-                       s.default_project_id, so.external_id
+                       s.default_project_id, so.external_id, sov.triage_metadata
                 FROM source_object_versions sov
                 JOIN source_objects so ON so.id = sov.source_object_id
                 JOIN sources s ON s.id = so.source_id

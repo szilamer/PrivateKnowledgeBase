@@ -1,3 +1,4 @@
+import json
 import time
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -25,6 +26,7 @@ from domain.proposals import (
     ProposalType,
     RiskLevel,
 )
+from domain.triage import triage_floor_risk, triage_requires_review
 
 from application.ports.content import ChunkRepository
 from application.ports.knowledge import (
@@ -87,6 +89,7 @@ class KnowledgeExtractionService:
         project_id = (
             UUID(str(context["default_project_id"])) if context.get("default_project_id") else None
         )
+        triage_metadata = self._parse_triage_metadata(context)
 
         await self._versions.update_knowledge_status(version_id, "processing")
         run_id = uuid4()
@@ -120,6 +123,7 @@ class KnowledgeExtractionService:
                 source_id=source_id,
                 project_id=project_id,
                 run_id=run_id,
+                triage_metadata=triage_metadata,
             )
         else:
             full_text = "\n\n".join(chunk.text for chunk in chunk_models)
@@ -132,6 +136,7 @@ class KnowledgeExtractionService:
                 owner_id=owner_id,
                 source_id=source_id,
                 project_id=project_id,
+                triage_metadata=triage_metadata,
             )
             graph_meta = {
                 "provider": outcome.provider,
@@ -197,6 +202,7 @@ class KnowledgeExtractionService:
         source_id: UUID,
         project_id: UUID | None,
         run_id: UUID,
+        triage_metadata: dict[str, object] | None = None,
     ) -> tuple[int, dict[str, object]]:
         from agents.extraction.graph import build_extraction_graph
         from agents.extraction.state import ExtractionState
@@ -226,6 +232,7 @@ class KnowledgeExtractionService:
                 owner_id=state["owner_id"],
                 source_id=state["source_id"],
                 project_id=state.get("project_id"),
+                triage_metadata=triage_metadata,
             )
 
         graph = build_extraction_graph(
@@ -313,26 +320,33 @@ class KnowledgeExtractionService:
         owner_id: UUID,
         source_id: UUID,
         project_id: UUID | None,
+        triage_metadata: dict[str, object] | None = None,
     ) -> tuple[int, int]:
         now = datetime.now(UTC)
         created = 0
         review_count = 0
+        triage_meta = triage_metadata or {}
 
         for entity in result.entities:
             spec = await self._resolve_entity_via_graph(entity, owner_id)
+            risk, needs_review_flag = self._apply_triage_policy(
+                spec.risk_level,
+                spec.needs_review,
+                triage_meta,
+            )
             proposal = KnowledgeProposal(
                 id=uuid4(),
                 owner_id=owner_id,
                 extraction_run_id=run_id,
                 proposal_type=spec.proposal_type,
                 status=ProposalStatus.PENDING,
-                risk_level=RiskLevel(spec.risk_level),
+                risk_level=RiskLevel(risk),
                 confidence=entity.confidence,
                 title=entity.name,
                 payload=spec.payload,
                 project_id=project_id,
                 source_id=source_id,
-                requires_review=spec.needs_review,
+                requires_review=needs_review_flag,
                 created_at=now,
                 updated_at=now,
                 evidence=[
@@ -350,7 +364,7 @@ class KnowledgeExtractionService:
             proposal.evidence[0].proposal_id = proposal.id
             await self._proposals.create_proposal(proposal)
             created += 1
-            if spec.needs_review:
+            if needs_review_flag:
                 review_count += 1
 
         for task in result.tasks:
@@ -366,6 +380,7 @@ class KnowledgeExtractionService:
                 now=now,
                 created=created,
                 review_count=review_count,
+                triage_metadata=triage_meta,
             )
         for decision in result.decisions:
             created, review_count = await self._append_typed_proposal(
@@ -380,6 +395,7 @@ class KnowledgeExtractionService:
                 now=now,
                 created=created,
                 review_count=review_count,
+                triage_metadata=triage_meta,
             )
         for event in result.events:
             created, review_count = await self._append_typed_proposal(
@@ -394,6 +410,7 @@ class KnowledgeExtractionService:
                 now=now,
                 created=created,
                 review_count=review_count,
+                triage_metadata=triage_meta,
             )
         for claim in result.claims:
             created, review_count = await self._append_typed_proposal(
@@ -408,6 +425,7 @@ class KnowledgeExtractionService:
                 now=now,
                 created=created,
                 review_count=review_count,
+                triage_metadata=triage_meta,
             )
         for relationship in result.relationships:
             created, review_count = await self._append_typed_proposal(
@@ -422,6 +440,7 @@ class KnowledgeExtractionService:
                 now=now,
                 created=created,
                 review_count=review_count,
+                triage_metadata=triage_meta,
             )
 
         return created, review_count
@@ -444,8 +463,9 @@ class KnowledgeExtractionService:
         now: datetime,
         created: int,
         review_count: int,
+        triage_metadata: dict[str, object] | None = None,
     ) -> tuple[int, int]:
-        added = await self._create_typed_proposal(
+        added, needs_review_flag = await self._create_typed_proposal(
             entry=entry,
             proposal_type=proposal_type,
             title_key=title_key,
@@ -455,12 +475,9 @@ class KnowledgeExtractionService:
             source_id=source_id,
             project_id=project_id,
             now=now,
+            triage_metadata=triage_metadata or {},
         )
-        if added and requires_review(
-            self._risk_for_entry(entry),
-            proposal_type.value,
-            confidence=float(entry.confidence),
-        ):
+        if added and needs_review_flag:
             review_count += 1
         return created + added, review_count
 
@@ -495,9 +512,16 @@ class KnowledgeExtractionService:
         source_id: UUID,
         project_id: UUID | None,
         now: datetime,
-    ) -> int:
+        triage_metadata: dict[str, object] | None = None,
+    ) -> tuple[int, bool]:
         confidence = float(entry.confidence)
-        risk = self._risk_for_entry(entry)
+        base_risk = self._risk_for_entry(entry)
+        base_review = requires_review(base_risk, proposal_type.value, confidence=confidence)
+        risk, needs_review_flag = self._apply_triage_policy(
+            base_risk,
+            base_review,
+            triage_metadata or {},
+        )
         title = str(getattr(entry, title_key, proposal_type.value))
         proposal = KnowledgeProposal(
             id=uuid4(),
@@ -511,7 +535,7 @@ class KnowledgeExtractionService:
             payload=entry.model_dump(mode="json"),
             project_id=project_id,
             source_id=source_id,
-            requires_review=requires_review(risk, proposal_type.value, confidence=confidence),
+            requires_review=needs_review_flag,
             created_at=now,
             updated_at=now,
             evidence=[
@@ -528,7 +552,7 @@ class KnowledgeExtractionService:
         )
         proposal.evidence[0].proposal_id = proposal.id
         await self._proposals.create_proposal(proposal)
-        return 1
+        return 1, needs_review_flag
 
     async def _resolve_entity_via_graph(
         self,
@@ -571,3 +595,28 @@ class KnowledgeExtractionService:
                 created_at=datetime.now(UTC),
             )
             await self._audit.append(event)
+
+    @staticmethod
+    def _parse_triage_metadata(context: dict[str, object]) -> dict[str, object]:
+        raw = context.get("triage_metadata")
+        if raw is None:
+            return {}
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                return {}
+            return dict(parsed) if isinstance(parsed, dict) else {}
+        if isinstance(raw, dict):
+            return dict(raw)
+        return {}
+
+    @staticmethod
+    def _apply_triage_policy(
+        risk: str,
+        needs_review: bool,
+        triage_metadata: dict[str, object],
+    ) -> tuple[str, bool]:
+        floored = triage_floor_risk(risk, triage_metadata)
+        flagged = needs_review or triage_requires_review(triage_metadata)
+        return floored, flagged

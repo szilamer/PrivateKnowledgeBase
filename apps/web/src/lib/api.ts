@@ -106,6 +106,14 @@ export async function getSourcesHealth(): Promise<SourcesHealth | null> {
   return response.json();
 }
 
+export type TriageSample = {
+  external_id: string;
+  sensitivity: string;
+  relevance: number;
+  review_risk: string;
+  extractor_hint: string;
+};
+
 export type SourceProcessingStats = {
   source_id: string;
   extraction_pending: number;
@@ -116,8 +124,11 @@ export type SourceProcessingStats = {
   knowledge_completed: number;
   knowledge_failed: number;
   knowledge_skipped: number;
+  triage_pending: number;
+  triage_completed: number;
   content_chunks: number;
   recent_extraction_errors: { external_id: string; error: string }[];
+  recent_triage_samples: TriageSample[];
 };
 
 export async function getSourceProcessingStats(
@@ -139,8 +150,37 @@ export function formatProcessingSummary(stats: SourceProcessingStats): string {
     stats.extraction_skipped;
   const knowledge = stats.knowledge_completed;
   const chunks = stats.content_chunks;
+  const triage = stats.triage_completed;
   if (total === 0) return "Még nincs feldolgozandó fájl.";
-  return `Feldolgozás: ${done}/${total} fájl · Tudás: ${knowledge} · Chunkok: ${chunks}`;
+  const triagePart = triage > 0 ? ` · Besorolás: ${triage}` : "";
+  return `Feldolgozás: ${done}/${total} fájl · Tudás: ${knowledge} · Chunkok: ${chunks}${triagePart}`;
+}
+
+export function triageSensitivityLabel(value: string): string {
+  switch (value) {
+    case "high":
+      return "Magas érzékenység";
+    case "medium":
+      return "Közepes érzékenység";
+    default:
+      return "Alacsony érzékenység";
+  }
+}
+
+export function triageReviewRiskLabel(value: string): string {
+  switch (value) {
+    case "high":
+      return "Magas ellenőrzési kockázat";
+    case "low":
+      return "Alacsony ellenőrzési kockázat";
+    default:
+      return "Közepes ellenőrzési kockázat";
+  }
+}
+
+export function formatTriageSample(sample: TriageSample): string {
+  const name = sample.external_id.split("/").pop() ?? sample.external_id;
+  return `${name} — ${triageSensitivityLabel(sample.sensitivity)}, ${triageReviewRiskLabel(sample.review_risk)}`;
 }
 
 export async function deleteSource(sourceId: string): Promise<boolean> {
