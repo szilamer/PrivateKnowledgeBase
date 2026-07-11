@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pkb-domain",
     "pkb-application",
+    "pkb-ontology",
     "sqlalchemy[asyncio]>=2.0",
     "asyncpg>=0.30",
     "redis>=5.2",
@@ -26,3 +27,4 @@ packages = ["src/adapters"]
 [tool.uv.sources]
 pkb-domain = { workspace = true }
 pkb-application = { workspace = true }
+pkb-ontology = { workspace = true }

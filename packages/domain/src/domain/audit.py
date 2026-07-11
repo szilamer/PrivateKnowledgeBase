@@ -19,6 +19,9 @@ class AuditAction(StrEnum):
     PROPOSAL_DEFERRED = "proposal_deferred"
     PROPOSAL_EDITED = "proposal_edited"
     RETRIEVAL_PLANNED = "retrieval_planned"
+    ONTOLOGY_PROPOSAL_CREATED = "ontology_proposal_created"
+    ONTOLOGY_PROPOSAL_APPROVED = "ontology_proposal_approved"
+    ONTOLOGY_PROPOSAL_REJECTED = "ontology_proposal_rejected"
 
 
 class AuditEvent(BaseModel):

@@ -18,6 +18,7 @@ from api.routes.app_settings import router as app_settings_router
 from api.routes.canonical import router as canonical_router
 from api.routes.google_connectors import router as google_connectors_router
 from api.routes.health import router as health_router
+from api.routes.ontology_proposals import router as ontology_proposals_router
 from api.routes.operations import router as operations_router
 from api.routes.projects import router as projects_router
 from api.routes.proposals import router as proposals_router
@@ -103,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(questions_router, prefix="/api/v1")
     app.include_router(projects_router, prefix="/api/v1")
     app.include_router(operations_router, prefix="/api/v1")
+    app.include_router(ontology_proposals_router, prefix="/api/v1")
     return app
 
 

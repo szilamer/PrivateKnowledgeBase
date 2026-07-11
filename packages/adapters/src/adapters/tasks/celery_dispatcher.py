@@ -33,3 +33,16 @@ class CeleryTaskDispatcher:
             args=[str(report_id), str(owner_id)],
             queue="maintenance",
         )
+
+    async def enqueue_pipeline_recovery(self) -> None:
+        self._client.send_task(
+            "worker.tasks.maintenance.recover_pipeline",
+            queue="maintenance",
+        )
+
+    async def schedule_maintenance_check(self, *, delay_seconds: int) -> None:
+        self._client.send_task(
+            "worker.tasks.maintenance.run_health_check",
+            countdown=delay_seconds,
+            queue="maintenance",
+        )

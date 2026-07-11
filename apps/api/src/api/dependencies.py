@@ -27,6 +27,11 @@ from adapters.persistence.knowledge_repository import (
     PostgresEntityIndexRepository,
     PostgresProposalRepository,
 )
+from adapters.persistence.ontology_repository import (
+    PostgresOntologyProposalRepository,
+    PostgresUnmappedConceptReader,
+)
+from adapters.persistence.pipeline_health_repository import PostgresPipelineHealthRepository
 from adapters.persistence.report_repository import PostgresProjectReportRepository
 from adapters.persistence.repositories import (
     PostgresAuditRepository,
@@ -42,6 +47,7 @@ from application.canonical.query_service import CanonicalQueryService, GraphQuer
 from application.content.preview import PreviewService
 from application.content.search import SearchService
 from application.knowledge.proposal_service import ProposalService
+from application.ontology.curator_service import OntologyCuratorService
 from application.operations.service import OperationsService
 from application.policy import LocalPolicyService
 from application.projects.dashboard_service import ProjectDashboardService
@@ -73,6 +79,7 @@ class RequestServices:
     operations: OperationsService
     reports: StatusReportService
     project_reports: ProjectReportService
+    ontology: OntologyCuratorService
     processing_stats: SourceProcessingStatsService
     tasks: CeleryTaskDispatcher
     owner: OwnerContext
@@ -169,13 +176,26 @@ def build_services(
             synthesis=AnswerSynthesisService(use_graph=synthesis_version == "graph_v2"),
         ),
         dashboard=ProjectDashboardService(canonical_repo, sources_repo, outbox_repo, policy),
-        operations=OperationsService(canonical_repo, outbox_repo, policy),
+        operations=OperationsService(
+            canonical_repo,
+            outbox_repo,
+            policy,
+            PostgresPipelineHealthRepository(session),
+            current_embedding_model=embeddings.model,
+            dispatcher=tasks,
+        ),
         reports=StatusReportService(canonical_repo, policy),
         project_reports=ProjectReportService(
             canonical_repo,
             PostgresProjectReportRepository(session),
             policy,
             dispatcher=tasks,
+        ),
+        ontology=OntologyCuratorService(
+            PostgresOntologyProposalRepository(session),
+            PostgresUnmappedConceptReader(session),
+            policy,
+            audit=audit_repo,
         ),
         processing_stats=SourceProcessingStatsService(processing_stats_repo, policy),
         tasks=tasks,

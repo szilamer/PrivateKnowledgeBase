@@ -5,7 +5,9 @@ from fastapi.responses import JSONResponse
 
 from api.dependencies import RequestServices, domain_error_response, get_services
 from api.schemas.operations import (
+    MaintenanceRunResponse,
     OperationsStatusResponse,
+    PipelineHealthResponse,
     ProjectionRebuildAcceptedResponse,
     ProjectionRebuildResponse,
 )
@@ -25,7 +27,35 @@ async def operations_status(
         canonical_entities=status.canonical_entities,
         canonical_claims=status.canonical_claims,
         projection_rebuild_recommended=status.projection_rebuild_recommended,
+        pipeline=PipelineHealthResponse(
+            extraction_pending=status.pipeline.extraction_pending,
+            extraction_failed=status.pipeline.extraction_failed,
+            knowledge_pending=status.pipeline.knowledge_pending,
+            triage_pending=status.pipeline.triage_pending,
+            embedding_model_mismatch_versions=status.pipeline.embedding_model_mismatch_versions,
+        ),
+        maintenance_recommended=status.maintenance_recommended,
+        status_summary_hu=status.status_summary_hu,
     )
+
+
+@router.post("/operations/maintenance/run", response_model=MaintenanceRunResponse)
+async def run_maintenance(
+    services: RequestServices = Depends(get_services),
+) -> MaintenanceRunResponse | JSONResponse:
+    try:
+        result = await services.operations.run_recovery(services.owner)
+        status = await services.operations.get_status(services.owner)
+        return MaintenanceRunResponse(
+            pipeline_recovery_enqueued=result.pipeline_recovery_enqueued,
+            embedding_mismatch_flagged=result.embedding_mismatch_flagged,
+            status_summary_hu=status.status_summary_hu,
+        )
+    except DomainError as exc:
+        return JSONResponse(
+            status_code=403,
+            content=domain_error_response(exc, services.correlation_id),
+        )
 
 
 @router.post(

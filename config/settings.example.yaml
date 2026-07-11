@@ -16,6 +16,9 @@ agents:
     version: graph_v2
   synthesis:
     version: graph_v2
+maintenance:
+  enabled: true
+  interval_minutes: 30
 
 llm:
   enabled: true

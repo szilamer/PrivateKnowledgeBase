@@ -1,0 +1,13 @@
+from typing import Protocol
+
+
+class PipelineHealthReader(Protocol):
+    async def get_pipeline_snapshot(self, current_embedding_model: str) -> dict[str, int]: ...
+
+    async def flag_embedding_model_mismatch(self, current_model: str) -> int: ...
+
+
+class MaintenanceRecoveryDispatcher(Protocol):
+    async def enqueue_pipeline_recovery(self) -> None: ...
+
+    async def schedule_maintenance_check(self, *, delay_seconds: int) -> None: ...

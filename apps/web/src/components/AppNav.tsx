@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/graph", label: "Gráf" },
   { href: "/proposals", label: "Javaslatok" },
   { href: "/projects", label: "Projektek" },
+  { href: "/operations", label: "Üzemeltetés" },
 ] as const;
 
 export function AppNav() {

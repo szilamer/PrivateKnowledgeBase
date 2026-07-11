@@ -41,7 +41,13 @@ class AgentsSettingsConfig(BaseModel):
     synthesis: SynthesisAgentSettings = Field(default_factory=SynthesisAgentSettings)
 
 
+class MaintenanceSettings(BaseModel):
+    enabled: bool = True
+    interval_minutes: int = 30
+
+
 class AppSettingsFile(BaseModel):
     version: str = "1"
     llm: LlmSettingsConfig = Field(default_factory=LlmSettingsConfig)
     agents: AgentsSettingsConfig = Field(default_factory=AgentsSettingsConfig)
+    maintenance: MaintenanceSettings = Field(default_factory=MaintenanceSettings)

@@ -4,6 +4,7 @@ from celery.signals import worker_ready
 from domain.sync import SyncRunStatus
 from observability.logging import get_logger
 
+from worker.celery_app import celery_app
 from worker.config import Settings
 from worker.db import run_task, task_session
 from worker.pipeline import enqueue_pipeline_recovery
@@ -38,3 +39,20 @@ def on_worker_ready(sender: object | None = None, **kwargs: object) -> None:
         logger.info("pipeline_recovery_enqueued")
     except Exception as exc:  # noqa: BLE001
         logger.error("pipeline_recovery_failed", error=str(exc))
+
+    try:
+        from pathlib import Path
+
+        from adapters.settings.config_loader import load_app_settings
+
+        app_settings = load_app_settings(Path(settings.settings_config_path))
+        if app_settings is not None and app_settings.maintenance.enabled:
+            delay = max(5, app_settings.maintenance.interval_minutes) * 60
+            celery_app.send_task(
+                "worker.tasks.maintenance.run_health_check",
+                countdown=delay,
+                queue="maintenance",
+            )
+            logger.info("maintenance_check_scheduled", delay_seconds=delay)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("maintenance_schedule_failed", error=str(exc))

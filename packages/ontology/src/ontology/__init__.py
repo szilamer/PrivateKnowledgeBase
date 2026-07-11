@@ -1,3 +1,5 @@
 """Version-controlled YAML ontology — projected at runtime."""
 
-__all__: list[str] = []
+from ontology.loader import OntologySnapshot, load_ontology_snapshot
+
+__all__ = ["OntologySnapshot", "load_ontology_snapshot"]

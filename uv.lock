@@ -1149,6 +1149,7 @@ dependencies = [
     { name = "neo4j" },
     { name = "pkb-application" },
     { name = "pkb-domain" },
+    { name = "pkb-ontology" },
     { name = "pypdf" },
     { name = "pyyaml" },
     { name = "redis" },
@@ -1164,6 +1165,7 @@ requires-dist = [
     { name = "neo4j", specifier = ">=5.26" },
     { name = "pkb-application", editable = "packages/application" },
     { name = "pkb-domain", editable = "packages/domain" },
+    { name = "pkb-ontology", editable = "packages/ontology" },
     { name = "pypdf", specifier = ">=5.1" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "redis", specifier = ">=5.2" },
@@ -1177,12 +1179,14 @@ source = { editable = "packages/agents" }
 dependencies = [
     { name = "langgraph" },
     { name = "pkb-domain" },
+    { name = "pkb-ontology" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "langgraph", specifier = ">=0.2" },
     { name = "pkb-domain", editable = "packages/domain" },
+    { name = "pkb-ontology", editable = "packages/ontology" },
 ]
 
 [[package]]
