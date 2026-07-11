@@ -26,3 +26,10 @@ class CeleryTaskDispatcher:
             args=[str(owner_id)],
             queue="maintenance",
         )
+
+    async def enqueue_project_report(self, report_id: UUID, owner_id: UUID) -> None:
+        self._client.send_task(
+            "worker.tasks.reports.generate_project_report",
+            args=[str(report_id), str(owner_id)],
+            queue="maintenance",
+        )

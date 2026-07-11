@@ -1,0 +1,9 @@
+{
+  "project_name": "Project Alpha",
+  "decisions": ["prioritize local-first deployment"],
+  "tasks": ["Wire Google OAuth callback"],
+  "events": ["Sprint planning completed"],
+  "risks": ["Conflicting deployment target"],
+  "technologies": ["Next.js", "TypeScript"],
+  "citations": ["proposal:11111111-1111-1111-1111-111111111111"]
+}

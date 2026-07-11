@@ -1,10 +1,16 @@
+from uuid import UUID
+
+from domain.errors import DomainError
 from domain.projects import StatusReportRequest
 from fastapi import APIRouter, Depends
+from starlette.responses import JSONResponse
 
-from api.dependencies import RequestServices, get_services
+from api.dependencies import RequestServices, domain_error_response, get_services
 from api.schemas.projects import (
     ProcessingHealthResponse,
     ProjectDashboardResponse,
+    ProjectReportBody,
+    ProjectReportResponse,
     ProjectSummaryItemResponse,
     StatusReportBody,
     StatusReportResponse,
@@ -86,3 +92,61 @@ async def status_report(
         citations=report.citations,
         generated_at=report.generated_at,
     )
+
+
+def _to_report_response(report: object) -> ProjectReportResponse:
+    from domain.report import ProjectReportArtifact
+
+    assert isinstance(report, ProjectReportArtifact)
+    return ProjectReportResponse(
+        id=str(report.id),
+        project_entity_id=str(report.project_entity_id),
+        status=report.status.value,
+        title=report.title,
+        markdown=report.markdown,
+        citations=report.citations,
+        period_start=report.period_start,
+        period_end=report.period_end,
+        error_summary=report.error_summary,
+        created_at=report.created_at,
+        completed_at=report.completed_at,
+    )
+
+
+@router.post("/projects/{project_id}/reports", response_model=ProjectReportResponse)
+async def create_project_report(
+    project_id: UUID,
+    body: ProjectReportBody,
+    services: RequestServices = Depends(get_services),
+) -> ProjectReportResponse | JSONResponse:
+    try:
+        job = await services.project_reports.enqueue(
+            services.owner,
+            project_id,
+            start_at=body.start_at,
+            end_at=body.end_at,
+        )
+        return _to_report_response(job)
+    except DomainError as exc:
+        return JSONResponse(
+            status_code=404,
+            content=domain_error_response(exc, services.correlation_id),
+        )
+
+
+@router.get(
+    "/projects/{project_id}/reports/{report_id}",
+    response_model=ProjectReportResponse,
+)
+async def get_project_report(
+    project_id: UUID,
+    report_id: UUID,
+    services: RequestServices = Depends(get_services),
+) -> ProjectReportResponse | JSONResponse:
+    job = await services.project_reports.get_job(services.owner, project_id, report_id)
+    if job is None:
+        return JSONResponse(
+            status_code=404,
+            content=domain_error_response(DomainError("Report not found"), services.correlation_id),
+        )
+    return _to_report_response(job)

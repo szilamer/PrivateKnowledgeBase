@@ -26,6 +26,18 @@ export type StatusReport = {
   citations: string[];
 };
 
+export type ProjectReport = {
+  id: string;
+  project_entity_id: string;
+  status: string;
+  title: string;
+  markdown: string | null;
+  citations: string[];
+  error_summary: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
 export async function fetchProjectOverview(): Promise<ProjectDashboard | null> {
   const response = await fetch(`${API_URL}/api/v1/projects/overview`, { cache: "no-store" });
   if (!response.ok) return null;
@@ -38,6 +50,30 @@ export async function generateStatusReport(): Promise<StatusReport | null> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
   });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function createProjectReport(
+  projectId: string,
+): Promise<ProjectReport | null> {
+  const response = await fetch(`${API_URL}/api/v1/projects/${projectId}/reports`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function getProjectReport(
+  projectId: string,
+  reportId: string,
+): Promise<ProjectReport | null> {
+  const response = await fetch(
+    `${API_URL}/api/v1/projects/${projectId}/reports/${reportId}`,
+    { cache: "no-store" },
+  );
   if (!response.ok) return null;
   return response.json();
 }

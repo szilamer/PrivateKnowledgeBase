@@ -41,3 +41,4 @@ import worker.tasks.graph_projection  # noqa: F401, E402
 import worker.tasks.ingestion  # noqa: F401, E402
 import worker.tasks.knowledge_extraction  # noqa: F401, E402
 import worker.tasks.maintenance  # noqa: F401, E402
+import worker.tasks.reports  # noqa: F401, E402

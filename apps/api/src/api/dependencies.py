@@ -27,6 +27,7 @@ from adapters.persistence.knowledge_repository import (
     PostgresEntityIndexRepository,
     PostgresProposalRepository,
 )
+from adapters.persistence.report_repository import PostgresProjectReportRepository
 from adapters.persistence.repositories import (
     PostgresAuditRepository,
     PostgresSourceRepository,
@@ -44,6 +45,7 @@ from application.knowledge.proposal_service import ProposalService
 from application.operations.service import OperationsService
 from application.policy import LocalPolicyService
 from application.projects.dashboard_service import ProjectDashboardService
+from application.projects.project_report_service import ProjectReportService
 from application.projects.report_service import StatusReportService
 from application.qa.answer_service import HybridRetrievalPlanner, QuestionAnsweringService
 from application.qa.synthesis_service import AnswerSynthesisService
@@ -70,6 +72,7 @@ class RequestServices:
     dashboard: ProjectDashboardService
     operations: OperationsService
     reports: StatusReportService
+    project_reports: ProjectReportService
     processing_stats: SourceProcessingStatsService
     tasks: CeleryTaskDispatcher
     owner: OwnerContext
@@ -168,6 +171,12 @@ def build_services(
         dashboard=ProjectDashboardService(canonical_repo, sources_repo, outbox_repo, policy),
         operations=OperationsService(canonical_repo, outbox_repo, policy),
         reports=StatusReportService(canonical_repo, policy),
+        project_reports=ProjectReportService(
+            canonical_repo,
+            PostgresProjectReportRepository(session),
+            policy,
+            dispatcher=tasks,
+        ),
         processing_stats=SourceProcessingStatsService(processing_stats_repo, policy),
         tasks=tasks,
         owner=OwnerContext(),

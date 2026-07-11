@@ -47,3 +47,22 @@ class StatusReportResponse(BaseModel):
     technologies: list[str]
     citations: list[str]
     generated_at: datetime
+
+
+class ProjectReportBody(BaseModel):
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+
+
+class ProjectReportResponse(BaseModel):
+    id: str
+    project_entity_id: str
+    status: str
+    title: str
+    markdown: str | None = None
+    citations: list[str] = Field(default_factory=list)
+    period_start: datetime | None = None
+    period_end: datetime | None = None
+    error_summary: str | None = None
+    created_at: datetime
+    completed_at: datetime | None = None
